@@ -45,3 +45,9 @@ Tras crear el primer usuario, asígnalo al grupo `admin` desde la consola de Cog
 `amplify.yml` usa **`npm install --legacy-peer-deps`** (en backend y frontend) en lugar de `npm ci`, para evitar fallos con el árbol de dependencias de `@aws-amplify/backend` y lockfiles incompletos en CodeBuild. El `package-lock.json` debe estar versionado y al día.
 
 En `package.json`, **`overrides`** fija versiones de `fast-xml-parser` y `strnum` que suelen chocar entre CDK y AWS SDK. Las dependencias explícitas **`xstate`** y **`@aws-amplify/core`** ayudan a que Vite 8 resuelva bien `@aws-amplify/ui-react`.
+
+### Error `spawnSync docker ENOENT` en el backend
+
+El entorno de build de Amplify **no incluye Docker**. Si el CDK no encuentra **esbuild** en la raíz del proyecto, intenta empaquetar con Docker y falla. Por eso el proyecto declara **`esbuild`** en `devDependencies` y `amplify.yml` exporta `PATH` con `node_modules/.bin` antes de `ampx pipeline-deploy`.
+
+Si tras esto sigue fallando, en la consola de Amplify revisa que la app tenga el **rol de servicio** con `AmplifyBackendDeployFullAccess` (despliegue Gen 2).
