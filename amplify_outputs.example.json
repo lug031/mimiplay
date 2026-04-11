@@ -1,0 +1,25 @@
+{
+  "version": "1.3",
+  "auth": {
+    "aws_region": "us-east-1",
+    "user_pool_id": "COPIAR_DESDE_SANDBOX",
+    "user_pool_client_id": "COPIAR_DESDE_SANDBOX",
+    "identity_pool_id": "COPIAR_DESDE_SANDBOX",
+    "mfa_configuration": "NONE",
+    "mfa_methods": [],
+    "standard_required_attributes": ["email"],
+    "username_attributes": ["email"],
+    "unauthenticated_identities_enabled": true
+  },
+  "data": {
+    "aws_region": "us-east-1",
+    "url": "https://xxx.appsync-api.us-east-1.amazonaws.com/graphql",
+    "default_authorization_type": "AMAZON_COGNITO_USER_POOLS",
+    "authorization_types": ["API_KEY", "AWS_IAM"],
+    "api_key": "da2-xxx"
+  },
+  "storage": {
+    "aws_region": "us-east-1",
+    "bucket_name": "bucket-generado"
+  }
+}
