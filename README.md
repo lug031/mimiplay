@@ -11,7 +11,7 @@ Portal en **React + TypeScript + Vite + Tailwind** con backend **AWS Amplify Gen
 
 ```bash
 cd mimiplay
-npm install
+npm install --legacy-peer-deps
 cp amplify_outputs.example.json amplify_outputs.json
 npm run sandbox
 ```
@@ -42,4 +42,6 @@ Tras crear el primer usuario, asígnalo al grupo `admin` desde la consola de Cog
 
 ## Despliegue CI
 
-`amplify.yml` ejecuta `ampx pipeline-deploy` en la fase backend y `npm run build` en el frontend (artefacto `dist/`).
+`amplify.yml` usa **`npm install --legacy-peer-deps`** (en backend y frontend) en lugar de `npm ci`, para evitar fallos con el árbol de dependencias de `@aws-amplify/backend` y lockfiles incompletos en CodeBuild. El `package-lock.json` debe estar versionado y al día.
+
+En `package.json`, **`overrides`** fija versiones de `fast-xml-parser` y `strnum` que suelen chocar entre CDK y AWS SDK. Las dependencias explícitas **`xstate`** y **`@aws-amplify/core`** ayudan a que Vite 8 resuelva bien `@aws-amplify/ui-react`.
