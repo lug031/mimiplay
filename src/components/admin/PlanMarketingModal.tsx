@@ -4,11 +4,13 @@ import { snackbarVariantForMessage, useAdminSnackbar } from "@/components/admin/
 import { adminDataClient } from "@/lib/dataClient";
 import { formatPlanPrice } from "@/lib/formatPlanPrice";
 import { formatModelErrors } from "@/lib/modelErrors";
+import { composeServiceDetailsForEditor } from "@/lib/planMarketing";
 import { fetchAuthSession } from "aws-amplify/auth";
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
 import {
   type AdminTierGroupDraft,
   adminDraftsFromPurchaseCatalog,
+  firstTierInCatalog,
   parsePurchaseTierCatalog,
   purchaseTierCatalogFromAdminDrafts,
   stringifyPurchaseTierCatalog,
@@ -48,10 +50,7 @@ export function PlanMarketingPanel({ plan, onCancel, onSaved }: Props) {
   const { showSnackbar } = useAdminSnackbar();
   const [promoImageUrl, setPromoImageUrl] = useState("");
   const [cardTitle, setCardTitle] = useState("");
-  const [accessSummary, setAccessSummary] = useState("");
-  const [qualitySummary, setQualitySummary] = useState("");
-  const [devicesSummary, setDevicesSummary] = useState("");
-  const [compatibilitySummary, setCompatibilitySummary] = useState("");
+  const [serviceDetails, setServiceDetails] = useState("");
   const [stockNotice, setStockNotice] = useState("");
   const [warningNotice, setWarningNotice] = useState("");
   const [extraContent, setExtraContent] = useState("");
@@ -59,19 +58,19 @@ export function PlanMarketingPanel({ plan, onCancel, onSaved }: Props) {
   const [tierGroupDrafts, setTierGroupDrafts] = useState<AdminTierGroupDraft[]>([]);
   const [pending, setPending] = useState(false);
 
+  const catalogParsed = useMemo(() => parsePurchaseTierCatalog(plan.purchaseOptionsJson), [plan.purchaseOptionsJson]);
+  const headerTier = useMemo(() => firstTierInCatalog(catalogParsed), [catalogParsed]);
+
   useEffect(() => {
     setPromoImageUrl(plan.promoImageUrl ?? "");
     setCardTitle(plan.cardTitle ?? "");
-    setAccessSummary(plan.accessSummary ?? "");
-    setQualitySummary(plan.qualitySummary ?? "");
-    setDevicesSummary(plan.devicesSummary ?? "");
-    setCompatibilitySummary(plan.compatibilitySummary ?? "");
+    setServiceDetails(composeServiceDetailsForEditor(plan));
     setStockNotice(plan.stockNotice ?? "");
     setWarningNotice(plan.warningNotice ?? "");
     setExtraContent(plan.extraContent ?? "");
     setCardPresentation(plan.cardPresentation === "EVENT" ? "EVENT" : "STANDARD");
-    setTierGroupDrafts(adminDraftsFromPurchaseCatalog(parsePurchaseTierCatalog(plan.purchaseOptionsJson)));
-  }, [plan]);
+    setTierGroupDrafts(adminDraftsFromPurchaseCatalog(catalogParsed));
+  }, [plan, catalogParsed]);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -79,16 +78,19 @@ export function PlanMarketingPanel({ plan, onCancel, onSaved }: Props) {
     try {
       await fetchAuthSession({ forceRefresh: true });
       const tierCatalog = purchaseTierCatalogFromAdminDrafts(tierGroupDrafts);
+      const first = tierCatalog ? firstTierInCatalog(tierCatalog) : null;
       const res = await adminDataClient.models.ServicePlan.update(
         {
           id: plan.id,
           cardPresentation,
+          durationDays: first?.durationDays ?? plan.durationDays,
+          pricePen: first?.pricePen ?? plan.pricePen,
           promoImageUrl: promoImageUrl.trim() || undefined,
           cardTitle: cardTitle.trim() || undefined,
-          accessSummary: accessSummary.trim() || undefined,
-          qualitySummary: qualitySummary.trim() || undefined,
-          devicesSummary: devicesSummary.trim() || undefined,
-          compatibilitySummary: compatibilitySummary.trim() || undefined,
+          accessSummary: serviceDetails.trim() || undefined,
+          qualitySummary: null,
+          devicesSummary: null,
+          compatibilitySummary: null,
           stockNotice: stockNotice.trim() || undefined,
           warningNotice: warningNotice.trim() || undefined,
           extraContent: extraContent.trim() || undefined,
@@ -117,7 +119,18 @@ export function PlanMarketingPanel({ plan, onCancel, onSaved }: Props) {
         <div className="min-w-0">
           <h2 className="text-base font-extrabold text-mimi-black">Editar anuncio</h2>
           <p className="mt-0.5 truncate text-xs text-mimi-subtle">
-            <strong>{plan.name}</strong> · {plan.durationDays} días · {formatPlanPrice(plan.pricePen)}
+            <strong>{plan.name}</strong>
+            {headerTier ? (
+              <>
+                {" "}
+                · {headerTier.durationDays} días · {formatPlanPrice(headerTier.pricePen)}
+              </>
+            ) : (
+              <>
+                {" "}
+                · {plan.durationDays} días · {formatPlanPrice(plan.pricePen)}
+              </>
+            )}
           </p>
         </div>
         <button
@@ -144,8 +157,7 @@ export function PlanMarketingPanel({ plan, onCancel, onSaved }: Props) {
             <option value="EVENT">Evento (varias opciones en el texto)</option>
           </select>
           <p className="mt-1 text-[11px] leading-snug text-mimi-muted">
-            Puedes definir <strong>varias opciones de compra</strong> abajo: el cliente elige precio y vigencia en la tienda. En evento, el texto largo puede
-            seguir listando opciones informativas.
+            Las <strong>opciones de compra</strong> (precio y vigencia) se definen solo en el catálogo de precios siguiente; el cliente elige en la tienda.
           </p>
         </div>
 
@@ -155,7 +167,7 @@ export function PlanMarketingPanel({ plan, onCancel, onSaved }: Props) {
             value={tierGroupDrafts}
             onChange={setTierGroupDrafts}
             disabled={pending}
-            hint="Bloques = tipos de producto; filas = vigencia y PEN. Sin datos válidos se usa el precio base del anuncio."
+            hint="Bloques = tipos de producto; cada fila = etiqueta visible, días de vigencia y precio en PEN. Los identificadores internos se asignan al guardar."
           />
         </div>
 
@@ -177,10 +189,27 @@ export function PlanMarketingPanel({ plan, onCancel, onSaved }: Props) {
           <input
             id="pm-title"
             className={`${field} mt-1`}
-            placeholder="Si vacío se usa el nombre del anuncio"
+            placeholder="Ej. nombre del servicio como lo verá el cliente"
             value={cardTitle}
             onChange={(e) => setCardTitle(e.target.value)}
           />
+          <p className="mt-1 text-[11px] text-mimi-muted">Si lo dejas vacío, en la tienda se usa el nombre interno del anuncio.</p>
+        </div>
+
+        <div className="sm:col-span-2">
+          <label className="block text-xs font-bold text-mimi-subtle" htmlFor="pm-service-details">
+            Detalles del servicio
+          </label>
+          <textarea
+            id="pm-service-details"
+            className={`${field} mt-1 min-h-[140px] whitespace-pre-wrap font-mono text-[13px] sm:min-h-[180px]`}
+            placeholder={"Acceso: Correo y contraseña\nCalidad: 4K Ultra HD\nDispositivos: 01 en simultáneo"}
+            value={serviceDetails}
+            onChange={(e) => setServiceDetails(e.target.value)}
+          />
+          <p className="mt-1 text-[11px] text-mimi-muted">
+            Un solo texto: acceso, calidad, dispositivos, compatibilidad, etc. Se muestra en la ficha tal como lo escribes (puedes usar varias líneas).
+          </p>
         </div>
 
         {cardPresentation === "EVENT" ? (
@@ -198,45 +227,6 @@ export function PlanMarketingPanel({ plan, onCancel, onSaved }: Props) {
           </div>
         ) : null}
 
-        <div>
-          <label className="block text-xs font-bold text-mimi-subtle" htmlFor="pm-access">
-            Acceso
-          </label>
-          <input
-            id="pm-access"
-            className={`${field} mt-1`}
-            placeholder="Correo y contraseña…"
-            value={accessSummary}
-            onChange={(e) => setAccessSummary(e.target.value)}
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs font-bold text-mimi-subtle" htmlFor="pm-quality">
-            Calidad
-          </label>
-          <input
-            id="pm-quality"
-            className={`${field} mt-1`}
-            placeholder="4K, Full HD…"
-            value={qualitySummary}
-            onChange={(e) => setQualitySummary(e.target.value)}
-          />
-        </div>
-
-        <div className="sm:col-span-2">
-          <label className="block text-xs font-bold text-mimi-subtle" htmlFor="pm-dev">
-            Dispositivos
-          </label>
-          <input
-            id="pm-dev"
-            className={`${field} mt-1`}
-            placeholder="Ej. 01 en simultáneo"
-            value={devicesSummary}
-            onChange={(e) => setDevicesSummary(e.target.value)}
-          />
-        </div>
-
         <div className="sm:col-span-2">
           <label className="block text-xs font-bold text-mimi-subtle" htmlFor="pm-stock">
             Aviso de stock
@@ -250,20 +240,7 @@ export function PlanMarketingPanel({ plan, onCancel, onSaved }: Props) {
           />
         </div>
 
-        <div>
-          <label className="block text-xs font-bold text-mimi-subtle" htmlFor="pm-comp">
-            Compatibilidad
-          </label>
-          <input
-            id="pm-comp"
-            className={`${field} mt-1`}
-            placeholder="Mac, Windows…"
-            value={compatibilitySummary}
-            onChange={(e) => setCompatibilitySummary(e.target.value)}
-          />
-        </div>
-
-        <div>
+        <div className="sm:col-span-2">
           <label className="block text-xs font-bold text-mimi-subtle" htmlFor="pm-warn">
             Aviso importante
           </label>
@@ -275,21 +252,6 @@ export function PlanMarketingPanel({ plan, onCancel, onSaved }: Props) {
             onChange={(e) => setWarningNotice(e.target.value)}
           />
         </div>
-
-        {cardPresentation === "STANDARD" ? (
-          <div className="sm:col-span-2">
-            <label className="block text-xs font-bold text-mimi-subtle" htmlFor="pm-extra-standard">
-              Texto en la tarjeta (listas de vigencias)
-            </label>
-            <textarea
-              id="pm-extra-standard"
-              className={`${field} mt-1 min-h-[120px] font-mono text-[13px] sm:min-h-[160px]`}
-              placeholder="▫️ 30 días → S/…"
-              value={extraContent}
-              onChange={(e) => setExtraContent(e.target.value)}
-            />
-          </div>
-        ) : null}
 
         <div className="flex flex-col gap-2 border-t border-mimi-black/8 pt-4 sm:col-span-2 sm:flex-row sm:justify-end">
           <button

@@ -1,7 +1,14 @@
 import type { PurchaseTier, PurchaseTierCatalog, PurchaseTierGroup } from "./types";
-import { slugifyGroupId, slugifyTierId } from "./slugify";
+import { stableGroupId, stableTierId } from "./slugify";
 
-/** Una fila en el editor admin (texto hasta validar). */
+function newDraftId() {
+  return globalThis.crypto?.randomUUID?.() ?? `id-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+/**
+ * Una fila en el editor admin. `id` es opaco: se asigna al crear la fila o viene del catálogo guardado;
+ * no se edita a mano (estabilidad en URLs/checkout).
+ */
 export type AdminTierRowDraft = {
   id: string;
   label: string;
@@ -18,23 +25,23 @@ export type AdminTierGroupDraft = {
 };
 
 export function emptyAdminTierRow(): AdminTierRowDraft {
-  return { id: "", label: "", days: "", price: "" };
+  return { id: newDraftId(), label: "", days: "", price: "" };
 }
 
 export function emptyAdminTierGroup(): AdminTierGroupDraft {
-  return { id: "", title: "", emoji: "", rows: [emptyAdminTierRow()] };
+  return { id: newDraftId(), title: "", emoji: "", rows: [emptyAdminTierRow()] };
 }
 
 export function adminDraftsFromPurchaseCatalog(catalog: PurchaseTierCatalog): AdminTierGroupDraft[] {
   if (catalog.groups.length === 0) return [];
   return catalog.groups.map((g) => ({
-    id: g.id,
+    id: g.id || newDraftId(),
     title: g.title,
     emoji: g.emoji ?? "",
     rows:
       g.tiers.length > 0
         ? g.tiers.map((t) => ({
-            id: t.id,
+            id: t.id || newDraftId(),
             label: t.label,
             days: String(t.durationDays),
             price: String(t.pricePen),
@@ -56,9 +63,9 @@ export function purchaseTierCatalogFromAdminDrafts(drafts: AdminTierGroupDraft[]
       const durationDays = Number.parseInt(row.days, 10);
       const pricePen = Number.parseFloat(row.price);
       if (!label || !Number.isFinite(durationDays) || durationDays < 1 || !Number.isFinite(pricePen) || pricePen < 0) return;
-      const id = row.id.trim() || slugifyTierId(label, gi * 100 + ri);
+      const persistedTierId = row.id.trim();
       tiers.push({
-        id,
+        id: persistedTierId || stableTierId(gi, ri, label),
         label,
         durationDays,
         pricePen: Math.round(pricePen * 100) / 100,
@@ -66,7 +73,8 @@ export function purchaseTierCatalogFromAdminDrafts(drafts: AdminTierGroupDraft[]
     });
     if (tiers.length === 0) return;
     const title = d.title.trim();
-    const groupId = d.id.trim() || slugifyGroupId(title || `grupo-${gi + 1}`, gi);
+    const persistedGroupId = d.id.trim();
+    const groupId = persistedGroupId || stableGroupId(gi, title || `grupo-${gi + 1}`);
     const emoji = d.emoji.trim() || undefined;
     groups.push({ id: groupId, title, emoji, tiers });
   });

@@ -1,7 +1,7 @@
 import { MimiPlayLogo } from "@/components/brand/MimiPlayLogo";
 import { MimiButton } from "@/components/ui/MimiButton";
 import type { PlanRow } from "@/lib/catalogApi";
-import { isEventCardPresentation, planDisplayTitle } from "@/lib/planMarketing";
+import { isEventCardPresentation, planDisplayTitle, planServiceDetailsForCard } from "@/lib/planMarketing";
 import { CATEGORY_LABEL } from "@/lib/orderStatus";
 import { formatPlanPrice } from "@/lib/formatPlanPrice";
 import {
@@ -21,21 +21,6 @@ function initials(name: string) {
     return (parts[0]!.charAt(0) + parts[1]!.charAt(0)).toUpperCase();
   }
   return t.slice(0, 2).toUpperCase();
-}
-
-type SpecLine = { label: string; value: string };
-
-function collectSpecs(p: PlanRow): SpecLine[] {
-  const lines: SpecLine[] = [];
-  const acc = p.accessSummary?.trim();
-  const qual = p.qualitySummary?.trim();
-  const dev = p.devicesSummary?.trim();
-  const comp = p.compatibilitySummary?.trim();
-  if (acc) lines.push({ label: "Acceso", value: acc });
-  if (qual) lines.push({ label: "Calidad", value: qual });
-  if (dev) lines.push({ label: "Dispositivos", value: dev });
-  if (comp) lines.push({ label: "Compatibilidad", value: comp });
-  return lines;
 }
 
 type Props = {
@@ -229,30 +214,16 @@ function CatalogPurchaseTierPicker({ planId, groups, selectedId, setSelectedId, 
   );
 }
 
-function CatalogSpecValue({ label, value }: { label: string; value: string }) {
-  const pill = label === "Dispositivos";
-  if (pill) {
-    return (
-      <dd>
-        <span className="inline-flex rounded-md border border-white/10 bg-white/[0.08] px-2 py-0.5 font-mono text-xs font-semibold tracking-tight text-white/95">
-          {value}
-        </span>
-      </dd>
-    );
-  }
-  return <dd className="text-white/75">{value}</dd>;
-}
-
 function PlanOfferCardStandard({ plan: p, buildCtaTo, ctaLabel, catalogChrome }: Props) {
   const { selectedId, setSelectedId, selected, showPicker, ctaHref } = usePlanPurchaseSelection(p, buildCtaTo);
   const title = planDisplayTitle(p);
-  const specs = collectSpecs(p);
+  const serviceDetails = planServiceDetailsForCard(p);
   const rawImg = p.promoImageUrl?.trim() ?? "";
   const stock = p.stockNotice?.trim();
   const warn = p.warningNotice?.trim();
   const extra = p.extraContent?.trim();
   const imageBlock: ReactNode = rawImg ? <PlanCardPromoImage key={rawImg} raw={rawImg} title={title} /> : null;
-  const hasRich = Boolean(rawImg) || specs.length > 0 || stock || warn || extra;
+  const hasRich = Boolean(rawImg) || serviceDetails || stock || warn || extra;
   /** Catálogo público: tarjetas en cuadrícula, estilo anuncio vertical. */
   const adLike = Boolean(catalogChrome);
 
@@ -277,15 +248,8 @@ function PlanOfferCardStandard({ plan: p, buildCtaTo, ctaLabel, catalogChrome }:
             </p>
           </div>
 
-          {specs.length > 0 ? (
-            <dl className="space-y-1.5 text-sm">
-              {specs.map((row) => (
-                <div key={row.label} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                  <dt className="shrink-0 font-bold text-white/90">{row.label}:</dt>
-                  <CatalogSpecValue label={row.label} value={row.value} />
-                </div>
-              ))}
-            </dl>
+          {serviceDetails ? (
+            <div className="text-sm leading-relaxed text-white/82 whitespace-pre-wrap [word-break:break-word]">{serviceDetails}</div>
           ) : null}
 
           {showPicker ? (
@@ -435,15 +399,8 @@ function PlanOfferCardStandard({ plan: p, buildCtaTo, ctaLabel, catalogChrome }:
             </fieldset>
           ) : null}
 
-          {specs.length > 0 ? (
-            <dl className="space-y-1.5 text-sm">
-              {specs.map((row) => (
-                <div key={row.label} className="flex flex-wrap gap-x-2 gap-y-0.5">
-                  <dt className="font-bold text-white/85">{row.label}:</dt>
-                  <dd className="text-white/75">{row.value}</dd>
-                </div>
-              ))}
-            </dl>
+          {serviceDetails ? (
+            <div className="text-sm leading-relaxed text-white/75 whitespace-pre-wrap [word-break:break-word]">{serviceDetails}</div>
           ) : null}
 
           {stock ? (
@@ -514,7 +471,7 @@ function PlanOfferCardStandard({ plan: p, buildCtaTo, ctaLabel, catalogChrome }:
 function PlanOfferCardEvent({ plan: p, buildCtaTo, ctaLabel, catalogChrome }: Props) {
   const { selectedId, setSelectedId, selected, showPicker, ctaHref } = usePlanPurchaseSelection(p, buildCtaTo);
   const title = planDisplayTitle(p);
-  const specs = collectSpecs(p);
+  const serviceDetails = planServiceDetailsForCard(p);
   const rawImg = p.promoImageUrl?.trim() ?? "";
   const stock = p.stockNotice?.trim();
   const warn = p.warningNotice?.trim();
@@ -586,17 +543,14 @@ function PlanOfferCardEvent({ plan: p, buildCtaTo, ctaLabel, catalogChrome }: Pr
             </p>
           )}
 
-          {specs.length > 0 ? (
+          {serviceDetails ? (
             <details className="rounded-lg border border-white/10 bg-mimi-black/35 text-xs text-white/75">
-              <summary className="cursor-pointer px-2.5 py-2 font-bold text-white/85 hover:bg-white/[0.04]">Detalles del acceso</summary>
-              <dl className="space-y-1 border-t border-white/10 px-2.5 py-2">
-                {specs.map((row) => (
-                  <div key={row.label} className="flex flex-wrap gap-x-2">
-                    <dt className="font-bold text-white/70">{row.label}:</dt>
-                    <CatalogSpecValue label={row.label} value={row.value} />
-                  </div>
-                ))}
-              </dl>
+              <summary className="cursor-pointer px-2.5 py-2 font-bold text-white/85 hover:bg-white/[0.04]">
+                Detalles del servicio
+              </summary>
+              <div className="border-t border-white/10 px-2.5 py-2 whitespace-pre-wrap [word-break:break-word] text-white/80">
+                {serviceDetails}
+              </div>
             </details>
           ) : null}
 
@@ -731,19 +685,10 @@ function PlanOfferCardEvent({ plan: p, buildCtaTo, ctaLabel, catalogChrome }: Pr
             </p>
           )}
 
-          {specs.length > 0 ? (
+          {serviceDetails ? (
             <details className="rounded-mimi border border-white/10 bg-mimi-black/30 text-sm text-white/80">
-              <summary className="cursor-pointer px-3 py-2 font-bold text-white/90 hover:bg-white/5">
-                Detalles técnicos del acceso
-              </summary>
-              <dl className="space-y-1.5 border-t border-white/10 px-3 py-3">
-                {specs.map((row) => (
-                  <div key={row.label} className="flex flex-wrap gap-x-2">
-                    <dt className="font-bold text-white/75">{row.label}:</dt>
-                    <dd>{row.value}</dd>
-                  </div>
-                ))}
-              </dl>
+              <summary className="cursor-pointer px-3 py-2 font-bold text-white/90 hover:bg-white/5">Detalles del servicio</summary>
+              <div className="border-t border-white/10 px-3 py-3 whitespace-pre-wrap [word-break:break-word]">{serviceDetails}</div>
             </details>
           ) : null}
 

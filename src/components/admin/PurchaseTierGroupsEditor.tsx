@@ -11,7 +11,7 @@ type Props = {
 
 /**
  * Editor de bloques de precio (grupo + filas de vigencia/PEN).
- * Estado controlado: lista de borradores ↔ `purchaseTierCatalogFromAdminDrafts` al guardar.
+ * Los ids de grupo y tier se generan al guardar (estables por posición y texto).
  */
 export function PurchaseTierGroupsEditor({ value, onChange, disabled, hint }: Props) {
   function updateGroup(index: number, patch: Partial<AdminTierGroupDraft>) {
@@ -57,12 +57,12 @@ export function PurchaseTierGroupsEditor({ value, onChange, disabled, hint }: Pr
       {hint ? <p className="text-[11px] leading-snug text-mimi-muted">{hint}</p> : null}
 
       {value.length === 0 ? (
-        <p className="text-xs text-mimi-subtle">No hay bloques de precio. Añade uno para publicar varias vigencias o tipos.</p>
+        <p className="text-xs text-mimi-subtle">No hay bloques de precio. Añade uno para definir vigencias y precios (PEN).</p>
       ) : null}
 
       {value.map((group, gi) => (
         <div
-          key={gi}
+          key={group.id}
           className="space-y-3 rounded-lg border border-dashed border-mimi-black/18 bg-mimi-black/[0.02] p-3 sm:p-4"
         >
           <div className="flex flex-wrap items-end justify-between gap-2 border-b border-mimi-black/10 pb-3">
@@ -82,14 +82,6 @@ export function PurchaseTierGroupsEditor({ value, onChange, disabled, hint }: Pr
                 value={group.emoji}
                 onChange={(e) => updateGroup(gi, { emoji: e.target.value })}
               />
-              <input
-                className="w-28 rounded border border-mimi-black/12 px-2 py-1.5 font-mono text-xs"
-                placeholder="id grupo"
-                title="Opcional; si vacío se genera al guardar"
-                disabled={inputDisabled}
-                value={group.id}
-                onChange={(e) => updateGroup(gi, { id: e.target.value })}
-              />
             </div>
             <button
               type="button"
@@ -104,14 +96,7 @@ export function PurchaseTierGroupsEditor({ value, onChange, disabled, hint }: Pr
           <div className="space-y-2">
             <p className="text-[10px] font-extrabold uppercase tracking-wide text-mimi-subtle">Planes en este bloque</p>
             {group.rows.map((row, ri) => (
-              <div key={ri} className="flex flex-wrap items-end gap-2 rounded-md border border-mimi-black/10 bg-white px-2 py-2">
-                <input
-                  className="w-24 min-w-0 rounded border border-mimi-black/12 px-2 py-1.5 text-xs"
-                  placeholder="id tier"
-                  disabled={inputDisabled}
-                  value={row.id}
-                  onChange={(e) => updateRow(gi, ri, { id: e.target.value })}
-                />
+              <div key={row.id} className="flex flex-wrap items-end gap-2 rounded-md border border-mimi-black/10 bg-white px-2 py-2">
                 <input
                   className="min-w-[6rem] flex-1 rounded border border-mimi-black/12 px-2 py-1.5 text-xs"
                   placeholder="Etiqueta (ej. 30 días)"

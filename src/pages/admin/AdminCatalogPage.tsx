@@ -10,6 +10,7 @@ import { planRowHasRichMarketing } from "@/lib/planMarketing";
 import { CATEGORY_LABEL } from "@/lib/orderStatus";
 import {
   type AdminTierGroupDraft,
+  emptyAdminTierGroup,
   firstTierInCatalog,
   parsePurchaseTierCatalog,
   purchaseTierCatalogFromAdminDrafts,
@@ -61,20 +62,15 @@ export function AdminCatalogPage() {
 
   const [selectedPlatformId, setSelectedPlatformId] = useState("");
   const [plName, setPlName] = useState("");
-  const [plDays, setPlDays] = useState("30");
-  const [plPrice, setPlPrice] = useState("");
   const [plVariant, setPlVariant] = useState("");
   const [plPromoUrl, setPlPromoUrl] = useState("");
   const [plCardTitle, setPlCardTitle] = useState("");
-  const [plAccess, setPlAccess] = useState("");
-  const [plQuality, setPlQuality] = useState("");
-  const [plDevices, setPlDevices] = useState("");
+  const [plServiceDetails, setPlServiceDetails] = useState("");
   const [plStock, setPlStock] = useState("");
   const [plWarn, setPlWarn] = useState("");
-  const [plComp, setPlComp] = useState("");
   const [plExtra, setPlExtra] = useState("");
   const [plCardPresentation, setPlCardPresentation] = useState<"STANDARD" | "EVENT">("STANDARD");
-  const [tierGroupDrafts, setTierGroupDrafts] = useState<AdminTierGroupDraft[]>([]);
+  const [tierGroupDrafts, setTierGroupDrafts] = useState<AdminTierGroupDraft[]>(() => [emptyAdminTierGroup()]);
 
   const filteredPlans = useMemo(() => {
     const q = planListQuery.trim().toLowerCase();
@@ -161,34 +157,33 @@ export function AdminCatalogPage() {
       showSnackbar("Selecciona una plataforma.", "warning");
       return;
     }
-    if (!plName.trim() || !plPrice) {
-      showSnackbar("Nombre del anuncio y precio son obligatorios.", "warning");
+    if (!plName.trim()) {
+      showSnackbar("El nombre interno del anuncio es obligatorio.", "warning");
       return;
     }
     const tierCatalog = purchaseTierCatalogFromAdminDrafts(tierGroupDrafts);
+    const firstTier = tierCatalog ? firstTierInCatalog(tierCatalog) : null;
+    if (!tierCatalog || !firstTier) {
+      showSnackbar("Define al menos un bloque de precios con una fila válida (etiqueta, días y PEN).", "warning");
+      return;
+    }
     try {
       await fetchAuthSession({ forceRefresh: true });
-      const baseDays = Number.parseInt(plDays, 10) || 30;
-      const basePrice = Number.parseFloat(plPrice);
-      const firstTier = tierCatalog ? firstTierInCatalog(tierCatalog) : null;
       const res = await adminDataClient.models.ServicePlan.create(
         {
           platformID: selectedPlatformId,
           name: plName.trim(),
-          durationDays: firstTier?.durationDays ?? baseDays,
-          pricePen: firstTier?.pricePen ?? basePrice,
-          purchaseOptionsJson: tierCatalog ? stringifyPurchaseTierCatalog(tierCatalog) : undefined,
+          durationDays: firstTier.durationDays,
+          pricePen: firstTier.pricePen,
+          purchaseOptionsJson: stringifyPurchaseTierCatalog(tierCatalog),
           planVariantKey: plVariant.trim() || undefined,
           active: true,
           promoImageUrl: plPromoUrl.trim() || undefined,
           cardTitle: plCardTitle.trim() || undefined,
-          accessSummary: plAccess.trim() || undefined,
-          qualitySummary: plQuality.trim() || undefined,
-          devicesSummary: plDevices.trim() || undefined,
-          compatibilitySummary: plComp.trim() || undefined,
+          accessSummary: plServiceDetails.trim() || undefined,
           stockNotice: plStock.trim() || undefined,
           warningNotice: plWarn.trim() || undefined,
-          extraContent: plExtra.trim() || undefined,
+          extraContent: plCardPresentation === "EVENT" ? plExtra.trim() || undefined : undefined,
           cardPresentation: plCardPresentation,
         },
         { authMode: "userPool" },
@@ -207,19 +202,15 @@ export function AdminCatalogPage() {
       return;
     }
     setPlName("");
-    setPlPrice("");
     setPlVariant("");
     setPlPromoUrl("");
     setPlCardTitle("");
-    setPlAccess("");
-    setPlQuality("");
-    setPlDevices("");
+    setPlServiceDetails("");
     setPlStock("");
     setPlWarn("");
-    setPlComp("");
     setPlExtra("");
     setPlCardPresentation("STANDARD");
-    setTierGroupDrafts([]);
+    setTierGroupDrafts([emptyAdminTierGroup()]);
     showSnackbar("Anuncio creado.", "success");
     await load();
   }
@@ -517,7 +508,7 @@ export function AdminCatalogPage() {
               <section className="rounded-2xl border border-mimi-black/12 bg-white p-6 shadow-sm">
                 <h2 className="text-lg font-extrabold text-mimi-black">Alta de anuncio</h2>
                 <p className="mt-1 text-xs text-mimi-muted">
-                  La primera fila válida de opciones de compra alinea también días y precio base del registro.
+                  El precio y los días del registro base se toman de la <strong>primera fila válida</strong> del catálogo de precios (misma lógica que la tienda).
                 </p>
                 <form className="mt-5 grid gap-3 sm:grid-cols-2" onSubmit={createPlan}>
                   <select
@@ -533,33 +524,16 @@ export function AdminCatalogPage() {
                   </select>
                   <input
                     className="w-full rounded-lg border border-mimi-black/12 px-3 py-2 text-sm sm:col-span-2"
-                    placeholder="Nombre del anuncio (ej. Perfil 1 pantalla 30d)"
+                    placeholder="Nombre interno del anuncio (listado admin)"
                     value={plName}
                     onChange={(e) => setPlName(e.target.value)}
                   />
-                  <input
-                    className="w-full rounded-lg border border-mimi-black/12 px-3 py-2 text-sm"
-                    type="number"
-                    min={1}
-                    placeholder="Días de vigencia"
-                    value={plDays}
-                    onChange={(e) => setPlDays(e.target.value)}
-                  />
-                  <input
-                    className="w-full rounded-lg border border-mimi-black/12 px-3 py-2 text-sm"
-                    type="number"
-                    step="0.01"
-                    min={0}
-                    placeholder="Precio (PEN)"
-                    value={plPrice}
-                    onChange={(e) => setPlPrice(e.target.value)}
-                  />
                   <div className="rounded-lg border border-dashed border-mimi-black/18 bg-mimi-black/[0.02] p-3 sm:col-span-2">
-                    <p className="text-xs font-bold text-mimi-subtle">Catálogo de precios (opcional)</p>
+                    <p className="text-xs font-bold text-mimi-subtle">Catálogo de precios (obligatorio)</p>
                     <PurchaseTierGroupsEditor
                       value={tierGroupDrafts}
                       onChange={setTierGroupDrafts}
-                      hint="Cada bloque es un tipo de producto (ej. PERFIL vs CUENTA). Dentro, cada fila es una vigencia y precio. Se guarda en JSON versionado para la tienda y el pedido."
+                      hint="Cada bloque es un tipo de producto (ej. PERFIL vs CUENTA). Cada fila: etiqueta visible, días y precio PEN. Los ids internos se generan al guardar."
                     />
                   </div>
                   <input
@@ -592,12 +566,30 @@ export function AdminCatalogPage() {
                       onUploadError={(m) => showSnackbar(m, "error")}
                     />
                   </div>
-                  <input
-                    className="w-full rounded-lg border border-mimi-black/12 px-3 py-2 text-sm sm:col-span-2"
-                    placeholder="Titular en la tarjeta"
-                    value={plCardTitle}
-                    onChange={(e) => setPlCardTitle(e.target.value)}
-                  />
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold text-mimi-subtle" htmlFor="new-plan-card-title">
+                      Titular en la tarjeta
+                    </label>
+                    <input
+                      id="new-plan-card-title"
+                      className="mt-1 w-full rounded-lg border border-mimi-black/12 px-3 py-2 text-sm"
+                      placeholder="Ej. cómo verá el cliente el nombre del servicio"
+                      value={plCardTitle}
+                      onChange={(e) => setPlCardTitle(e.target.value)}
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold text-mimi-subtle" htmlFor="new-plan-service-details">
+                      Detalles del servicio
+                    </label>
+                    <textarea
+                      id="new-plan-service-details"
+                      className="mt-1 min-h-[120px] w-full rounded-lg border border-mimi-black/12 px-3 py-2 font-mono text-sm sm:min-h-[140px]"
+                      placeholder={"Acceso: Correo y contraseña\nCalidad: 4K Ultra HD\nDispositivos: 01 en simultáneo"}
+                      value={plServiceDetails}
+                      onChange={(e) => setPlServiceDetails(e.target.value)}
+                    />
+                  </div>
                   {plCardPresentation === "EVENT" ? (
                     <textarea
                       className="w-full rounded-lg border border-mimi-black/12 px-3 py-2 text-sm sm:col-span-2"
@@ -608,24 +600,6 @@ export function AdminCatalogPage() {
                     />
                   ) : null}
                   <input
-                    className="w-full rounded-lg border border-mimi-black/12 px-3 py-2 text-sm"
-                    placeholder="Acceso"
-                    value={plAccess}
-                    onChange={(e) => setPlAccess(e.target.value)}
-                  />
-                  <input
-                    className="w-full rounded-lg border border-mimi-black/12 px-3 py-2 text-sm"
-                    placeholder="Calidad"
-                    value={plQuality}
-                    onChange={(e) => setPlQuality(e.target.value)}
-                  />
-                  <input
-                    className="w-full rounded-lg border border-mimi-black/12 px-3 py-2 text-sm sm:col-span-2"
-                    placeholder="Dispositivos"
-                    value={plDevices}
-                    onChange={(e) => setPlDevices(e.target.value)}
-                  />
-                  <input
                     className="w-full rounded-lg border border-mimi-black/12 px-3 py-2 text-sm sm:col-span-2"
                     placeholder="Aviso de stock"
                     value={plStock}
@@ -633,25 +607,10 @@ export function AdminCatalogPage() {
                   />
                   <input
                     className="w-full rounded-lg border border-mimi-black/12 px-3 py-2 text-sm sm:col-span-2"
-                    placeholder="Compatibilidad"
-                    value={plComp}
-                    onChange={(e) => setPlComp(e.target.value)}
-                  />
-                  <input
-                    className="w-full rounded-lg border border-mimi-black/12 px-3 py-2 text-sm sm:col-span-2"
                     placeholder="Aviso importante"
                     value={plWarn}
                     onChange={(e) => setPlWarn(e.target.value)}
                   />
-                  {plCardPresentation === "STANDARD" ? (
-                    <textarea
-                      className="w-full rounded-lg border border-mimi-black/12 px-3 py-2 text-sm sm:col-span-2"
-                      rows={4}
-                      placeholder="Listas de vigencias y precios en la tarjeta (▫️ 30 días → S/…)"
-                      value={plExtra}
-                      onChange={(e) => setPlExtra(e.target.value)}
-                    />
-                  ) : null}
                   <button
                     type="submit"
                     className="w-full rounded-full bg-mimi-black py-2.5 text-sm font-bold text-white hover:bg-neutral-800 sm:col-span-2 sm:w-auto sm:px-10"
