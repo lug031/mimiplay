@@ -33,20 +33,20 @@ const styles = {
   dark: {
     label: "block text-xs font-bold text-white/70",
     input:
-      "mt-1 w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400",
+      "mt-1 w-full rounded-lg border border-white/25 bg-white px-3 py-2 text-sm text-mimi-black placeholder:text-mimi-muted",
     hint: "text-[11px] text-white/45",
     button:
       "inline-flex cursor-pointer items-center justify-center rounded-full border border-white/25 bg-white/10 px-4 py-2 text-xs font-bold text-white hover:bg-white/15 disabled:opacity-50",
     previewFrame: "border border-white/10 bg-mimi-black",
   },
   light: {
-    label: "block text-xs font-bold text-slate-700",
+    label: "block text-xs font-bold text-mimi-black",
     input:
-      "mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400",
-    hint: "text-[11px] text-slate-500",
+      "mt-1 w-full rounded-lg border border-mimi-black/12 bg-white px-3 py-2 text-sm text-mimi-black placeholder:text-mimi-muted",
+    hint: "text-[11px] text-mimi-muted",
     button:
-      "inline-flex cursor-pointer items-center justify-center rounded-full border border-slate-300 bg-slate-100 px-4 py-2 text-xs font-bold text-slate-800 hover:bg-slate-200 disabled:opacity-50",
-    previewFrame: "border border-slate-200 bg-slate-50",
+      "inline-flex cursor-pointer items-center justify-center rounded-full border border-mimi-black/15 bg-mimi-black/[0.06] px-4 py-2 text-xs font-bold text-mimi-black hover:bg-mimi-black/[0.1] disabled:opacity-50",
+    previewFrame: "border border-mimi-black/12 bg-mimi-black/[0.04]",
   },
 } as const;
 

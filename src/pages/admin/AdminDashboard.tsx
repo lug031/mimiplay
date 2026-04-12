@@ -26,8 +26,8 @@ const cards = [
 export function AdminDashboard() {
   return (
     <div>
-      <h1 className="text-2xl font-extrabold text-slate-900">Panel administrador</h1>
-      <p className="mt-2 max-w-2xl text-sm text-slate-600">
+      <h1 className="text-2xl font-extrabold text-mimi-black">Panel administrador</h1>
+      <p className="mt-2 max-w-2xl text-sm text-mimi-subtle">
         Operación comercial de MimiPlay: publicar oferta (catálogo), alimentar stock (inventario), validar pagos (cola)
         y cerrar ventas con entrega de credenciales al comprador.
       </p>
@@ -36,10 +36,10 @@ export function AdminDashboard() {
           <Link
             key={c.to}
             to={c.to}
-            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-sky-400 hover:shadow-md"
+            className="rounded-2xl border border-mimi-black/12 bg-white p-5 shadow-sm transition hover:border-mimi-black/28 hover:shadow-md"
           >
-            <h2 className="text-lg font-extrabold text-sky-700">{c.title}</h2>
-            <p className="mt-2 text-sm text-slate-600">{c.desc}</p>
+            <h2 className="text-lg font-extrabold text-mimi-black">{c.title}</h2>
+            <p className="mt-2 text-sm text-mimi-subtle">{c.desc}</p>
           </Link>
         ))}
       </div>

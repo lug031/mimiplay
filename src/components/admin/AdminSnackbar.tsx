@@ -23,7 +23,7 @@ const variantClass: Record<AdminSnackbarVariant, string> = {
   success: "border-emerald-500/40 bg-emerald-950 text-emerald-50 shadow-emerald-950/40",
   error: "border-red-500/40 bg-red-950 text-red-50 shadow-red-950/40",
   warning: "border-amber-500/45 bg-amber-950 text-amber-50 shadow-amber-950/40",
-  info: "border-sky-500/40 bg-sky-950 text-sky-50 shadow-sky-950/40",
+  info: "border-white/20 bg-mimi-elevated text-white shadow-black/40",
 };
 
 function newId() {

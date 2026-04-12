@@ -294,17 +294,17 @@ export function AdminOrdersPage({ queueOnly }: Props) {
 
   return (
     <div>
-      <h1 className="text-2xl font-extrabold text-neutral-900">{queueOnly ? "Cola de revisión" : "Pedidos"}</h1>
-      <p className="mt-2 text-sm text-neutral-600">
+      <h1 className="text-2xl font-extrabold text-mimi-black">{queueOnly ? "Cola de revisión" : "Pedidos"}</h1>
+      <p className="mt-2 text-sm text-mimi-subtle">
         {queueOnly
           ? "Bandeja de compras con comprobante recibido: validación de pago antes de liberar acceso."
           : "Vista global de ventas: comprobantes, confirmación de ingresos y cierre operativo con entrega de credenciales."}
       </p>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
-        <label className="text-sm font-bold text-neutral-900">Filtrar</label>
+        <label className="text-sm font-bold text-mimi-black">Filtrar</label>
         <select
-          className="rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+          className="rounded-lg border border-mimi-black/12 px-3 py-2 text-sm"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         >
@@ -317,7 +317,7 @@ export function AdminOrdersPage({ queueOnly }: Props) {
         </select>
         <button
           type="button"
-          className="rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm font-bold hover:border-neutral-400"
+          className="rounded-full border border-mimi-black/12 bg-white px-4 py-2 text-sm font-bold hover:border-mimi-black/28"
           onClick={() => void refresh()}
         >
           Actualizar
@@ -326,9 +326,9 @@ export function AdminOrdersPage({ queueOnly }: Props) {
 
       {loading && <MimiLoadingState tone="light" layout="inline" className="mt-6" />}
 
-      <div className="mt-8 overflow-x-auto rounded-xl border border-neutral-200 bg-white">
+      <div className="mt-8 overflow-x-auto rounded-xl border border-mimi-black/12 bg-white">
         <table className="min-w-full text-left text-sm">
-          <thead className="border-b border-neutral-200 bg-neutral-100">
+          <thead className="border-b border-mimi-black/12 bg-mimi-black/[0.06]">
             <tr>
               <th className="px-3 py-2 font-bold">Pedido</th>
               <th className="px-3 py-2 font-bold">Plan</th>
@@ -339,10 +339,10 @@ export function AdminOrdersPage({ queueOnly }: Props) {
           </thead>
           <tbody>
             {filteredRows.map((r) => (
-              <tr key={r.id} className="border-b border-neutral-200 last:border-0">
+              <tr key={r.id} className="border-b border-mimi-black/12 last:border-0">
                 <td className="px-3 py-2 font-mono text-xs">{r.id.slice(0, 8)}…</td>
                 <td className="px-3 py-2">{r.planLabel}</td>
-                <td className="px-3 py-2 text-neutral-600">
+                <td className="px-3 py-2 text-mimi-subtle">
                   {r.payerFullName || r.owner || "—"}
                   {r.paymentMethod ? ` · ${paymentMethodLabel(r.paymentMethod)}` : ""}
                 </td>
@@ -352,7 +352,7 @@ export function AdminOrdersPage({ queueOnly }: Props) {
                 <td className="px-3 py-2 text-right">
                   <button
                     type="button"
-                    className="font-bold text-neutral-900 hover:underline"
+                    className="font-bold text-mimi-black hover:underline"
                     onClick={() => void openDetail(r.id)}
                   >
                     Gestionar
@@ -366,10 +366,10 @@ export function AdminOrdersPage({ queueOnly }: Props) {
 
       {openId && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-mimi-black/50 p-4 sm:items-center">
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-neutral-200 bg-white p-6 shadow-xl">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-mimi-black/12 bg-white p-6 shadow-xl">
             <div className="flex items-start justify-between gap-4">
               <h2 className="text-lg font-extrabold">Pedido {openId.slice(0, 8)}…</h2>
-              <button type="button" className="text-sm font-bold text-neutral-600 hover:text-neutral-900" onClick={closeDetail}>
+              <button type="button" className="text-sm font-bold text-mimi-subtle hover:text-mimi-black" onClick={closeDetail}>
                 Cerrar
               </button>
             </div>
@@ -394,7 +394,7 @@ export function AdminOrdersPage({ queueOnly }: Props) {
                 {detail.proofUrl && (
                   <div>
                     <p className="font-bold">Comprobante</p>
-                    <a href={detail.proofUrl} target="_blank" rel="noreferrer" className="text-neutral-900 hover:underline">
+                    <a href={detail.proofUrl} target="_blank" rel="noreferrer" className="text-mimi-black hover:underline">
                       Abrir archivo
                     </a>
                     {detail.proofUrl.match(/\.(png|jpe?g|gif|webp)$/i) && (
@@ -404,7 +404,7 @@ export function AdminOrdersPage({ queueOnly }: Props) {
                 )}
 
                 {st === "PAYMENT_SUBMITTED" && (
-                  <div className="flex flex-wrap gap-2 border-t border-neutral-200 pt-4">
+                  <div className="flex flex-wrap gap-2 border-t border-mimi-black/12 pt-4">
                     <button
                       type="button"
                       className="rounded-full bg-mimi-black px-4 py-2 text-xs font-bold text-white hover:bg-neutral-800"
@@ -423,13 +423,13 @@ export function AdminOrdersPage({ queueOnly }: Props) {
                 )}
 
                 {st === "PAYMENT_CONFIRMED" && (
-                  <div className="space-y-3 border-t border-neutral-200 pt-4">
-                    <p className="font-bold text-neutral-900">Entregar credenciales</p>
+                  <div className="space-y-3 border-t border-mimi-black/12 pt-4">
+                    <p className="font-bold text-mimi-black">Entregar credenciales</p>
                     {availAccounts.length > 0 && (
                       <div>
-                        <label className="block text-xs font-bold text-neutral-600">Cuenta del inventario (opcional)</label>
+                        <label className="block text-xs font-bold text-mimi-subtle">Cuenta del inventario (opcional)</label>
                         <select
-                          className="mt-1 w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                          className="mt-1 w-full rounded-lg border border-mimi-black/12 px-3 py-2 text-sm"
                           value={selectedAccountId}
                           onChange={(e) => onPickAccount(e.target.value)}
                         >
@@ -443,41 +443,41 @@ export function AdminOrdersPage({ queueOnly }: Props) {
                       </div>
                     )}
                     <input
-                      className="w-full rounded-lg border border-neutral-200 px-3 py-2"
+                      className="w-full rounded-lg border border-mimi-black/12 px-3 py-2"
                       placeholder="Correo"
                       value={ce}
                       onChange={(e) => setCe(e.target.value)}
                     />
                     <input
-                      className="w-full rounded-lg border border-neutral-200 px-3 py-2"
+                      className="w-full rounded-lg border border-mimi-black/12 px-3 py-2"
                       placeholder="Contraseña"
                       value={cp}
                       onChange={(e) => setCp(e.target.value)}
                     />
                     <input
-                      className="w-full rounded-lg border border-neutral-200 px-3 py-2"
+                      className="w-full rounded-lg border border-mimi-black/12 px-3 py-2"
                       placeholder="Perfil (opcional)"
                       value={cprof}
                       onChange={(e) => setCprof(e.target.value)}
                     />
                     <input
-                      className="w-full rounded-lg border border-neutral-200 px-3 py-2"
+                      className="w-full rounded-lg border border-mimi-black/12 px-3 py-2"
                       placeholder="PIN (opcional)"
                       value={cpin}
                       onChange={(e) => setCpin(e.target.value)}
                     />
                     <div>
-                      <label className="block text-xs font-bold text-neutral-600">Fecha/hora renovación o fin de vigencia</label>
+                      <label className="block text-xs font-bold text-mimi-subtle">Fecha/hora renovación o fin de vigencia</label>
                       <input
                         type="datetime-local"
-                        className="mt-1 w-full rounded-lg border border-neutral-200 px-3 py-2"
+                        className="mt-1 w-full rounded-lg border border-mimi-black/12 px-3 py-2"
                         value={renewLocal}
                         onChange={(e) => setRenewLocal(e.target.value)}
                       />
                     </div>
                     <button
                       type="button"
-                      className="w-full rounded-full bg-emerald-700 py-2.5 text-sm font-bold text-white hover:bg-emerald-800"
+                      className="w-full rounded-full bg-mimi-black py-2.5 text-sm font-bold text-white hover:bg-neutral-800"
                       onClick={() => void fulfillOrder()}
                     >
                       Marcar entregado

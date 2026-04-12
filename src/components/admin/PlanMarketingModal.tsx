@@ -31,7 +31,7 @@ type Props = {
 };
 
 const input =
-  "w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400";
+  "w-full rounded-lg border border-white/25 bg-white px-3 py-2 text-sm text-mimi-black placeholder:text-mimi-muted";
 
 export function PlanMarketingModal({ plan, onClose, onSaved }: Props) {
   const { showSnackbar } = useAdminSnackbar();
@@ -273,7 +273,7 @@ export function PlanMarketingModal({ plan, onClose, onSaved }: Props) {
             <button
               type="submit"
               disabled={pending}
-              className="rounded-full bg-white px-4 py-2.5 text-sm font-extrabold text-mimi-black hover:bg-neutral-200 disabled:opacity-60"
+              className="rounded-full bg-white px-4 py-2.5 text-sm font-extrabold text-mimi-black hover:bg-mimi-muted/40 disabled:opacity-60"
             >
               {pending ? "Guardando…" : "Guardar anuncio"}
             </button>
