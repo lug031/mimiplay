@@ -21,11 +21,11 @@ const CATEGORY_CHIPS: { key: string; label: string; icon: string }[] = [
 const FAQ_ITEMS: { q: string; a: string }[] = [
   {
     q: "¿Cuánto cuesta el servicio?",
-    a: "Cada plan publica precio y vigencia en días. Pagas el monto del plan contratado; no cobramos registro en la web.",
+    a: "Cada anuncio publica precio y vigencia en días. Pagas el monto del acceso contratado; no cobramos registro en la web.",
   },
   {
     q: "¿Qué es MimiPlay?",
-    a: "Es una plataforma comercial para adquirir accesos a cuentas de streaming, apps y servicios digitales asociados: eliges plan, registras el pago con comprobante y recibes las credenciales cuando la compra quede validada, según disponibilidad de stock y las condiciones de cada proveedor externo.",
+    a: "Es una plataforma comercial para adquirir accesos a cuentas de streaming, apps y servicios digitales: eliges un anuncio, registras el pago con comprobante y recibes las credenciales cuando la compra quede validada, según stock y condiciones de cada proveedor.",
   },
   {
     q: "¿Puedo cancelar un pedido?",
@@ -91,7 +91,7 @@ export function LandingPage() {
             </h1>
             <p className="mx-auto mt-4 max-w-2xl text-sm text-white/70 sm:text-base">
               Comercializamos accesos a cuentas para distintas plataformas (streaming, apps y servicios digitales).
-              Consulta planes, formaliza tu pago con comprobante y da seguimiento a tu compra desde tu cuenta.
+              Consulta anuncios, formaliza tu pago con comprobante y da seguimiento a tu compra desde tu cuenta.
             </p>
 
             <form
@@ -157,7 +157,7 @@ export function LandingPage() {
           </div>
           <div className="max-w-xs text-center sm:text-left">
             <p className="text-sm text-white/70">
-              Registro sin costo: accede al catálogo de planes, genera pedidos con comprobante de pago y gestiona tus compras de accesos en un solo
+              Registro sin costo: accede al catálogo de anuncios, genera pedidos con comprobante de pago y gestiona tus compras de accesos en un solo
               lugar.
             </p>
             <MimiButton to="/app/acceso/registro" variant="primary" className="mt-5 !inline-flex !gap-2 !px-6 !py-3 !text-sm">

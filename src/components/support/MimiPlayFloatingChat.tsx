@@ -50,7 +50,7 @@ export function MimiPlayFloatingChat() {
           <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 pb-4 pt-1">
             <div className="flex justify-start">
               <div className="max-w-[95%] rounded-2xl rounded-bl-md bg-mimi-black px-3.5 py-2.5 text-sm leading-relaxed text-white/80">
-                Hola. Aquí podrás resolver dudas sobre planes, pagos con comprobante y el estado de tus pedidos. Por ahora este
+                Hola. Aquí podrás resolver dudas sobre anuncios, pagos con comprobante y el estado de tus pedidos. Por ahora este
                 canal es solo de demostración.
               </div>
             </div>

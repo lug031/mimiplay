@@ -60,6 +60,7 @@ export default function App() {
               <Route index element={<Navigate to="/catalogo" replace />} />
               <Route path="inicio" element={<Navigate to="/catalogo" replace />} />
               <Route path="planes" element={<Navigate to="/catalogo" replace />} />
+              <Route path="anuncios" element={<Navigate to="/catalogo" replace />} />
               <Route path="pedido/nuevo" element={<ClientNewOrderPage />} />
               <Route path="pedidos" element={<ClientOrdersPage />} />
               <Route path="pedidos/:orderId" element={<ClientOrderDetailPage />} />

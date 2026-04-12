@@ -80,7 +80,7 @@ export function CatalogFiltersSidebar({
             <li>
               <FilterSwitchRow
                 icon="🖼"
-                label="Solo con ficha (imagen o texto tipo WhatsApp)"
+                label="Solo con ficha (imagen o texto de presentación)"
                 checked={richFichaOnly}
                 onChange={setRichFichaOnly}
                 variant="dark"

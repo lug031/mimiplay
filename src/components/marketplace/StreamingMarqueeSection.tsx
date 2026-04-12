@@ -36,7 +36,7 @@ const CARDS: StreamCard[] = [
     name: "Netflix",
     planType: "Premium · 4 pantallas",
     monthlyS: "S/24.90",
-    cta: "Ver planes",
+    cta: "Ver catálogo",
     href: "/catalogo?q=netflix",
     gradient: "from-[#b20710] via-[#e50914] to-[#831010]",
     mark: "N",
@@ -56,7 +56,7 @@ const CARDS: StreamCard[] = [
     name: "HBO Max",
     planType: "Móvil · 1 dispositivo",
     monthlyS: "S/12.00",
-    cta: "Ver planes",
+    cta: "Ver catálogo",
     href: "/catalogo?q=hbo",
     gradient: "from-[#3d1a5c] via-[#582c8c] to-[#1a0a2e]",
     mark: "H",
@@ -96,7 +96,7 @@ const CARDS: StreamCard[] = [
     name: "Paramount+",
     planType: "Essential",
     monthlyS: "S/10.90",
-    cta: "Ver planes",
+    cta: "Ver catálogo",
     href: "/catalogo?q=paramount",
     gradient: "from-[#0047ab] via-[#0064ff] to-[#001a44]",
     mark: "+",
@@ -157,7 +157,7 @@ export function StreamingMarqueeSection() {
   return (
     <section
       className="relative border-b border-white/[0.06] bg-mimi-surface pt-10 pb-12 sm:pt-14 sm:pb-16"
-      aria-label="Planes destacados en carrusel"
+      aria-label="Anuncios destacados en carrusel"
     >
       <div className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-10 bg-gradient-to-r from-mimi-surface to-transparent sm:w-16" aria-hidden />
       <div className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-10 bg-gradient-to-l from-mimi-surface to-transparent sm:w-16" aria-hidden />

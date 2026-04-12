@@ -165,7 +165,7 @@ export function AdminInventoryPage() {
           />
           <input
             className="rounded-lg border border-mimi-black/12 px-3 py-2 text-sm"
-            placeholder="Variante de plan (opcional)"
+            placeholder="Variante de anuncio"
             value={variant}
             onChange={(e) => setVariant(e.target.value)}
           />

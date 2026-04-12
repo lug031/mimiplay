@@ -3,6 +3,7 @@ import { getUrl } from "aws-amplify/storage";
 import { snackbarVariantForMessage, useAdminSnackbar } from "@/components/admin/AdminSnackbar";
 import { MimiLoadingState } from "@/components/ui/MimiLoadingState";
 import { adminDataClient } from "@/lib/dataClient";
+import { formatPlanPrice } from "@/lib/formatPlanPrice";
 import { orderStatusLabel, paymentMethodLabel } from "@/lib/orderStatus";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 
@@ -14,6 +15,7 @@ type OrderRow = {
   paymentMethod?: string | null;
   servicePlanID: string;
   planLabel: string;
+  chosenSummary?: string | null;
   createdAt?: string | null;
 };
 
@@ -24,6 +26,9 @@ type OrderDetail = {
   payerSecurityCode?: string | null;
   paymentProofStorageKey?: string | null;
   servicePlanID: string;
+  chosenOptionLabel?: string | null;
+  chosenDurationDays?: number | null;
+  chosenPricePen?: number | null;
 };
 
 type Props = {
@@ -39,6 +44,72 @@ const STATUS_OPTIONS = [
   "CANCELLED",
   "MANUAL_ASSIGNMENT_NEEDED",
 ] as const;
+
+function proofMediaKind(storageKey: string | null | undefined): "image" | "pdf" | "unknown" {
+  if (!storageKey) return "unknown";
+  if (/\.(png|jpe?g|gif|webp)$/i.test(storageKey)) return "image";
+  if (/\.pdf$/i.test(storageKey)) return "pdf";
+  return "unknown";
+}
+
+function AdminPaymentProofPanel({
+  storageKey,
+  url,
+}: {
+  storageKey: string | null | undefined;
+  url: string | null;
+}) {
+  const [imgFailed, setImgFailed] = useState(false);
+  if (!url) {
+    return <p className="text-sm text-mimi-muted">Sin comprobante adjunto.</p>;
+  }
+  const kind = proofMediaKind(storageKey);
+
+  return (
+    <div className="flex min-h-0 flex-col">
+      <p className="text-xs font-extrabold uppercase tracking-wide text-mimi-subtle">Comprobante</p>
+      {kind === "image" && !imgFailed ? (
+        <img
+          src={url}
+          alt="Comprobante de pago"
+          className="mt-2 max-h-[min(70vh,520px)] w-full rounded-xl border border-mimi-black/12 bg-mimi-black/[0.03] object-contain"
+          onError={() => setImgFailed(true)}
+        />
+      ) : null}
+      {kind === "image" && imgFailed ? (
+        <p className="mt-2 text-sm text-amber-800">No se pudo mostrar la imagen. Usa el enlace inferior.</p>
+      ) : null}
+      {kind === "pdf" ? (
+        <iframe
+          title="Comprobante PDF"
+          src={url}
+          className="mt-2 h-[min(70vh,520px)] w-full rounded-xl border border-mimi-black/12 bg-mimi-black/[0.03]"
+        />
+      ) : null}
+      {kind === "unknown" && !imgFailed ? (
+        <img
+          src={url}
+          alt="Comprobante de pago"
+          className="mt-2 max-h-[min(70vh,520px)] w-full rounded-xl border border-mimi-black/12 bg-mimi-black/[0.03] object-contain"
+          onError={() => setImgFailed(true)}
+        />
+      ) : null}
+      {kind === "unknown" && imgFailed ? (
+        <p className="mt-2 text-sm text-mimi-subtle">Vista previa no disponible para este tipo de archivo.</p>
+      ) : null}
+      {imgFailed ? (
+        <a
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-3 text-xs font-bold text-mimi-black underline decoration-mimi-black/30 underline-offset-2 hover:decoration-mimi-black"
+        >
+          Abrir comprobante en pestaña nueva
+        </a>
+      ) : null}
+    </div>
+  );
+}
 
 export function AdminOrdersPage({ queueOnly }: Props) {
   const { showSnackbar } = useAdminSnackbar();
@@ -84,6 +155,15 @@ export function AdminOrdersPage({ queueOnly }: Props) {
         const p = planMap.get(o.servicePlanID);
         const plat = p ? pmap.get(p.platformID) : undefined;
         const planLabel = p ? (plat ? `${plat.name} · ${p.name}` : p.name) : "—";
+        const co = o as {
+          chosenOptionLabel?: string | null;
+          chosenDurationDays?: number | null;
+          chosenPricePen?: number | null;
+        };
+        const chosenSummary =
+          co.chosenOptionLabel != null && co.chosenOptionLabel !== ""
+            ? `${co.chosenOptionLabel} · ${co.chosenDurationDays ?? "—"}d · ${formatPlanPrice(co.chosenPricePen ?? 0)}`
+            : null;
         enriched.push({
           id: o.id,
           status: o.status,
@@ -92,6 +172,7 @@ export function AdminOrdersPage({ queueOnly }: Props) {
           paymentMethod: o.paymentMethod,
           servicePlanID: o.servicePlanID,
           planLabel,
+          chosenSummary,
           createdAt: (o as { createdAt?: string }).createdAt,
         });
       }
@@ -331,7 +412,7 @@ export function AdminOrdersPage({ queueOnly }: Props) {
           <thead className="border-b border-mimi-black/12 bg-mimi-black/[0.06]">
             <tr>
               <th className="px-3 py-2 font-bold">Pedido</th>
-              <th className="px-3 py-2 font-bold">Plan</th>
+              <th className="px-3 py-2 font-bold">Anuncio</th>
               <th className="px-3 py-2 font-bold">Cliente / titular</th>
               <th className="px-3 py-2 font-bold">Estado</th>
               <th className="px-3 py-2 font-bold" />
@@ -341,7 +422,12 @@ export function AdminOrdersPage({ queueOnly }: Props) {
             {filteredRows.map((r) => (
               <tr key={r.id} className="border-b border-mimi-black/12 last:border-0">
                 <td className="px-3 py-2 font-mono text-xs">{r.id.slice(0, 8)}…</td>
-                <td className="px-3 py-2">{r.planLabel}</td>
+                <td className="px-3 py-2">
+                  <span className="font-medium">{r.planLabel}</span>
+                  {r.chosenSummary ? (
+                    <div className="mt-0.5 text-xs text-mimi-subtle">Opción: {r.chosenSummary}</div>
+                  ) : null}
+                </td>
                 <td className="px-3 py-2 text-mimi-subtle">
                   {r.payerFullName || r.owner || "—"}
                   {r.paymentMethod ? ` · ${paymentMethodLabel(r.paymentMethod)}` : ""}
@@ -366,7 +452,7 @@ export function AdminOrdersPage({ queueOnly }: Props) {
 
       {openId && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-mimi-black/50 p-4 sm:items-center">
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-mimi-black/12 bg-white p-6 shadow-xl">
+          <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-2xl border border-mimi-black/12 bg-white p-6 shadow-xl">
             <div className="flex items-start justify-between gap-4">
               <h2 className="text-lg font-extrabold">Pedido {openId.slice(0, 8)}…</h2>
               <button type="button" className="text-sm font-bold text-mimi-subtle hover:text-mimi-black" onClick={closeDetail}>
@@ -377,31 +463,37 @@ export function AdminOrdersPage({ queueOnly }: Props) {
             {detailLoading && <MimiLoadingState tone="light" layout="inline" className="mt-4 py-6" />}
 
             {!detailLoading && detail?.order && (
-              <div className="mt-4 space-y-4 text-sm">
-                <p>
-                  <strong>Estado:</strong> {orderStatusLabel(detail.order.status)}
-                </p>
-                {detail.order.payerFullName && (
-                  <p>
-                    <strong>Titular pago:</strong> {detail.order.payerFullName}
-                  </p>
-                )}
-                {detail.order.payerSecurityCode && (
-                  <p>
-                    <strong>Código / ref.:</strong> {detail.order.payerSecurityCode}
-                  </p>
-                )}
-                {detail.proofUrl && (
-                  <div>
-                    <p className="font-bold">Comprobante</p>
-                    <a href={detail.proofUrl} target="_blank" rel="noreferrer" className="text-mimi-black hover:underline">
-                      Abrir archivo
-                    </a>
-                    {detail.proofUrl.match(/\.(png|jpe?g|gif|webp)$/i) && (
-                      <img src={detail.proofUrl} alt="" className="mt-2 max-h-48 w-full rounded-lg border object-contain" />
+              <div className="mt-4 space-y-6 text-sm">
+                <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+                  <div className="space-y-4">
+                    <p>
+                      <strong>Estado:</strong> {orderStatusLabel(detail.order.status)}
+                    </p>
+                    {detail.order.payerFullName && (
+                      <p>
+                        <strong>Titular pago:</strong> {detail.order.payerFullName}
+                      </p>
                     )}
+                    {detail.order.payerSecurityCode && (
+                      <p>
+                        <strong>Código / ref.:</strong> {detail.order.payerSecurityCode}
+                      </p>
+                    )}
+                    {detail.order.chosenOptionLabel ? (
+                      <p>
+                        <strong>Opción comprada:</strong> {detail.order.chosenOptionLabel} · {detail.order.chosenDurationDays ?? "—"} días ·{" "}
+                        {formatPlanPrice(detail.order.chosenPricePen ?? 0)}
+                      </p>
+                    ) : null}
                   </div>
-                )}
+                  <div className="lg:sticky lg:top-0">
+                    <AdminPaymentProofPanel
+                      key={detail.proofUrl ?? detail.order.paymentProofStorageKey ?? "none"}
+                      storageKey={detail.order.paymentProofStorageKey}
+                      url={detail.proofUrl}
+                    />
+                  </div>
+                </div>
 
                 {st === "PAYMENT_SUBMITTED" && (
                   <div className="flex flex-wrap gap-2 border-t border-mimi-black/12 pt-4">

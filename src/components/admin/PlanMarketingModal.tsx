@@ -5,7 +5,15 @@ import { formatPlanPrice } from "@/lib/formatPlanPrice";
 import { formatModelErrors } from "@/lib/modelErrors";
 import { fetchAuthSession } from "aws-amplify/auth";
 import { type FormEvent, useEffect, useState } from "react";
+import {
+  type AdminPurchaseOptionRow,
+  adminRowsFromPurchaseOptions,
+  parsePurchaseOptionsJson,
+  purchaseOptionsFromAdminRows,
+  stringifyPurchaseOptions,
+} from "@/lib/purchaseOptions";
 
+/** Registro de anuncio en admin (modelo API ServicePlan). */
 export type PlanRecord = {
   id: string;
   name: string;
@@ -22,6 +30,8 @@ export type PlanRecord = {
   stockNotice?: string | null;
   warningNotice?: string | null;
   extraContent?: string | null;
+  /** JSON de opciones de compra; vacío = solo precio/días del registro. */
+  purchaseOptionsJson?: string | null;
 };
 
 type Props = {
@@ -45,6 +55,7 @@ export function PlanMarketingModal({ plan, onClose, onSaved }: Props) {
   const [warningNotice, setWarningNotice] = useState("");
   const [extraContent, setExtraContent] = useState("");
   const [cardPresentation, setCardPresentation] = useState<"STANDARD" | "EVENT">("STANDARD");
+  const [poRows, setPoRows] = useState<AdminPurchaseOptionRow[]>([]);
   const [pending, setPending] = useState(false);
 
   useEffect(() => {
@@ -58,6 +69,7 @@ export function PlanMarketingModal({ plan, onClose, onSaved }: Props) {
     setWarningNotice(plan.warningNotice ?? "");
     setExtraContent(plan.extraContent ?? "");
     setCardPresentation(plan.cardPresentation === "EVENT" ? "EVENT" : "STANDARD");
+    setPoRows(adminRowsFromPurchaseOptions(parsePurchaseOptionsJson(plan.purchaseOptionsJson)));
   }, [plan]);
 
   async function onSubmit(e: FormEvent) {
@@ -65,6 +77,7 @@ export function PlanMarketingModal({ plan, onClose, onSaved }: Props) {
     setPending(true);
     try {
       await fetchAuthSession({ forceRefresh: true });
+      const purchaseOpts = purchaseOptionsFromAdminRows(poRows);
       const res = await adminDataClient.models.ServicePlan.update(
         {
           id: plan.id,
@@ -78,6 +91,8 @@ export function PlanMarketingModal({ plan, onClose, onSaved }: Props) {
           stockNotice: stockNotice.trim() || undefined,
           warningNotice: warningNotice.trim() || undefined,
           extraContent: extraContent.trim() || undefined,
+          purchaseOptionsJson:
+            purchaseOpts && purchaseOpts.length > 0 ? stringifyPurchaseOptions(purchaseOpts) : null,
         },
         { authMode: "userPool" },
       );
@@ -86,7 +101,7 @@ export function PlanMarketingModal({ plan, onClose, onSaved }: Props) {
         showSnackbar(errText, snackbarVariantForMessage(errText));
         return;
       }
-      showSnackbar("Anuncio del plan guardado.", "success");
+      showSnackbar("Presentación guardada.", "success");
       onSaved();
       onClose();
     } catch (err) {
@@ -111,22 +126,21 @@ export function PlanMarketingModal({ plan, onClose, onSaved }: Props) {
       >
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-mimi-elevated px-4 py-3">
           <h2 id="plan-marketing-title" className="text-base font-extrabold text-white">
-            Anuncio del plan
+            Presentación del anuncio
           </h2>
           <button type="button" className="rounded-lg px-2 py-1 text-sm font-bold text-white/70 hover:bg-white/10" onClick={onClose}>
             Cerrar
           </button>
         </div>
 
-        <form className="space-y-4 px-4 py-4" onSubmit={onSubmit}>
-          <p className="text-xs leading-relaxed text-white/60">
-            Referencia interna: <strong className="text-white">{plan.name}</strong> · {plan.durationDays} días · {formatPlanPrice(plan.pricePen)}{" "}
-            (eso es lo que se compra al pulsar el botón en la tienda). Lo siguiente es solo presentación, como en WhatsApp.
+        <form className="grid gap-3 px-4 py-4 sm:grid-cols-2" onSubmit={onSubmit}>
+          <p className="text-xs leading-relaxed text-white/60 sm:col-span-2">
+            <strong className="text-white">{plan.name}</strong> · {plan.durationDays} días · {formatPlanPrice(plan.pricePen)} (precio al comprar en la tienda).
           </p>
 
-          <div>
+          <div className="sm:col-span-2">
             <label className="block text-xs font-bold text-white/70" htmlFor="pm-card-kind">
-              Tipo de tarjeta en la tienda
+              Tipo de tarjeta
             </label>
             <select
               id="pm-card-kind"
@@ -134,36 +148,129 @@ export function PlanMarketingModal({ plan, onClose, onSaved }: Props) {
               value={cardPresentation}
               onChange={(e) => setCardPresentation(e.target.value === "EVENT" ? "EVENT" : "STANDARD")}
             >
-              <option value="STANDARD">Catálogo (ficha con acceso, calidad, dispositivos…)</option>
-              <option value="EVENT">Evento (UFC, Champions, boxeo: texto largo tipo WhatsApp, imagen grande)</option>
+              <option value="STANDARD">Catálogo (una plataforma)</option>
+              <option value="EVENT">Evento (varias opciones en el texto)</option>
             </select>
             <p className="mt-1 text-[11px] leading-snug text-white/45">
-              En <strong className="text-white/60">Evento</strong> el bloque “Texto adicional” es el cuerpo principal (emojis, listas de precios, avisos
-              de transmisión). El botón de compra sigue siendo solo para este plan y su precio.
+              Puedes definir <strong className="text-white/60">varias opciones de compra</strong> abajo: el cliente elige precio y vigencia en la tienda. En
+              evento, el texto largo puede seguir listando opciones informativas.
             </p>
           </div>
 
-          <PlanPromoImageField
-            inputId="pm-image"
-            variant="dark"
-            value={promoImageUrl}
-            onChange={setPromoImageUrl}
-            disabled={pending}
-            onUploadError={(m) => showSnackbar(m, "error")}
-          />
+          <div className="space-y-2 rounded-xl border border-white/12 bg-mimi-black/35 p-3 sm:col-span-2">
+            <p className="text-xs font-bold text-white/75">Opciones de compra (precio en tienda)</p>
+            <p className="text-[11px] leading-snug text-white/45">
+              Filas vacías o incompletas se ignoran. Sin filas válidas se usa solo el precio y días del anuncio.
+            </p>
+            {poRows.map((row, i) => (
+              <div key={i} className="flex flex-wrap items-end gap-2 rounded-lg border border-white/10 bg-mimi-black/40 px-2 py-2">
+                <input
+                  className="w-24 min-w-0 rounded border border-white/15 bg-white px-2 py-1.5 text-xs text-mimi-black"
+                  placeholder="id"
+                  disabled={pending}
+                  value={row.id}
+                  onChange={(e) => {
+                    const next = [...poRows];
+                    next[i] = { ...next[i]!, id: e.target.value };
+                    setPoRows(next);
+                  }}
+                />
+                <input
+                  className="min-w-[8rem] flex-1 rounded border border-white/15 bg-white px-2 py-1.5 text-xs text-mimi-black"
+                  placeholder="Etiqueta"
+                  disabled={pending}
+                  value={row.label}
+                  onChange={(e) => {
+                    const next = [...poRows];
+                    next[i] = { ...next[i]!, label: e.target.value };
+                    setPoRows(next);
+                  }}
+                />
+                <input
+                  className="w-20 rounded border border-white/15 bg-white px-2 py-1.5 text-xs text-mimi-black"
+                  type="number"
+                  min={1}
+                  placeholder="Días"
+                  disabled={pending}
+                  value={row.days}
+                  onChange={(e) => {
+                    const next = [...poRows];
+                    next[i] = { ...next[i]!, days: e.target.value };
+                    setPoRows(next);
+                  }}
+                />
+                <input
+                  className="w-24 rounded border border-white/15 bg-white px-2 py-1.5 text-xs text-mimi-black"
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  placeholder="PEN"
+                  disabled={pending}
+                  value={row.price}
+                  onChange={(e) => {
+                    const next = [...poRows];
+                    next[i] = { ...next[i]!, price: e.target.value };
+                    setPoRows(next);
+                  }}
+                />
+                <button
+                  type="button"
+                  disabled={pending}
+                  className="rounded-full border border-white/20 px-2 py-1 text-[11px] font-bold text-white/70 hover:bg-white/10 disabled:opacity-50"
+                  onClick={() => setPoRows(poRows.filter((_, j) => j !== i))}
+                >
+                  Quitar
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              disabled={pending}
+              className="text-xs font-bold text-white/80 underline decoration-white/30 underline-offset-2 hover:decoration-white disabled:opacity-50"
+              onClick={() => setPoRows([...poRows, { id: "", label: "", days: "", price: "" }])}
+            >
+              + Añadir opción
+            </button>
+          </div>
 
-          <div>
+          <div className="sm:col-span-2">
+            <PlanPromoImageField
+              inputId="pm-image"
+              variant="dark"
+              value={promoImageUrl}
+              onChange={setPromoImageUrl}
+              disabled={pending}
+              onUploadError={(m) => showSnackbar(m, "error")}
+            />
+          </div>
+
+          <div className="sm:col-span-2">
             <label className="block text-xs font-bold text-white/70" htmlFor="pm-title">
-              Titular en la tarjeta (opcional)
+              Titular en la tarjeta
             </label>
             <input
               id="pm-title"
               className={`${input} mt-1`}
-              placeholder="Ej. NETFLIX PREMIUM (si vacío se usa el nombre del plan)"
+              placeholder="Si vacío se usa el nombre del anuncio"
               value={cardTitle}
               onChange={(e) => setCardTitle(e.target.value)}
             />
           </div>
+
+          {cardPresentation === "EVENT" ? (
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-bold text-white/70" htmlFor="pm-extra">
+                Cuerpo del anuncio (evento)
+              </label>
+              <textarea
+                id="pm-extra"
+                className={`${input} mt-1 min-h-[160px] font-mono text-[13px] sm:min-h-[200px]`}
+                placeholder="Plataformas, precios, horarios, enlaces, cupos…"
+                value={extraContent}
+                onChange={(e) => setExtraContent(e.target.value)}
+              />
+            </div>
+          ) : null}
 
           <div>
             <label className="block text-xs font-bold text-white/70" htmlFor="pm-access">
@@ -172,7 +279,7 @@ export function PlanMarketingModal({ plan, onClose, onSaved }: Props) {
             <input
               id="pm-access"
               className={`${input} mt-1`}
-              placeholder="Ej. Correo y contraseña"
+              placeholder="Correo y contraseña…"
               value={accessSummary}
               onChange={(e) => setAccessSummary(e.target.value)}
             />
@@ -185,13 +292,13 @@ export function PlanMarketingModal({ plan, onClose, onSaved }: Props) {
             <input
               id="pm-quality"
               className={`${input} mt-1`}
-              placeholder="Ej. 4K Ultra HD"
+              placeholder="4K, Full HD…"
               value={qualitySummary}
               onChange={(e) => setQualitySummary(e.target.value)}
             />
           </div>
 
-          <div>
+          <div className="sm:col-span-2">
             <label className="block text-xs font-bold text-white/70" htmlFor="pm-dev">
               Dispositivos
             </label>
@@ -204,65 +311,61 @@ export function PlanMarketingModal({ plan, onClose, onSaved }: Props) {
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-white/70" htmlFor="pm-comp">
-              Compatibilidad (opcional)
-            </label>
-            <input
-              id="pm-comp"
-              className={`${input} mt-1`}
-              placeholder="Ej. Mac, Windows, Android, iOS"
-              value={compatibilitySummary}
-              onChange={(e) => setCompatibilitySummary(e.target.value)}
-            />
-          </div>
-
-          <div>
+          <div className="sm:col-span-2">
             <label className="block text-xs font-bold text-white/70" htmlFor="pm-stock">
-              Aviso de stock / urgencia (opcional)
+              Aviso de stock
             </label>
             <input
               id="pm-stock"
               className={`${input} mt-1`}
-              placeholder="Ej. HASTA AGOTAR STOCK"
+              placeholder="HASTA AGOTAR STOCK…"
               value={stockNotice}
               onChange={(e) => setStockNotice(e.target.value)}
             />
           </div>
 
           <div>
+            <label className="block text-xs font-bold text-white/70" htmlFor="pm-comp">
+              Compatibilidad
+            </label>
+            <input
+              id="pm-comp"
+              className={`${input} mt-1`}
+              placeholder="Mac, Windows…"
+              value={compatibilitySummary}
+              onChange={(e) => setCompatibilitySummary(e.target.value)}
+            />
+          </div>
+
+          <div>
             <label className="block text-xs font-bold text-white/70" htmlFor="pm-warn">
-              Aviso importante (opcional)
+              Aviso importante
             </label>
             <input
               id="pm-warn"
               className={`${input} mt-1`}
-              placeholder="Ej. No incluye instalación"
+              placeholder="No incluye instalación…"
               value={warningNotice}
               onChange={(e) => setWarningNotice(e.target.value)}
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-white/70" htmlFor="pm-extra">
-              {cardPresentation === "EVENT"
-                ? "Texto del evento (cuerpo principal, como en WhatsApp)"
-                : "Texto adicional (listas, otros precios, tiers…)"}
-            </label>
-            <textarea
-              id="pm-extra"
-              className={`${input} mt-1 min-h-[180px] font-mono text-[13px] sm:min-h-[220px]`}
-              placeholder={
-                cardPresentation === "EVENT"
-                  ? "Ej. título con emojis, peleadores, precios por plataforma, Discord/Web, avisos EN VIVO, cupos… (todo lo que envías al chat)"
-                  : "Ej. líneas como en WhatsApp:\n💎 PERFIL - 1 PANTALLA\n▫️ 30 días → 4.00 PEN\n▫️ 90 días → 10.50 PEN"
-              }
-              value={extraContent}
-              onChange={(e) => setExtraContent(e.target.value)}
-            />
-          </div>
+          {cardPresentation === "STANDARD" ? (
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-bold text-white/70" htmlFor="pm-extra-standard">
+                Texto en la tarjeta (listas de vigencias)
+              </label>
+              <textarea
+                id="pm-extra-standard"
+                className={`${input} mt-1 min-h-[120px] font-mono text-[13px] sm:min-h-[160px]`}
+                placeholder="▫️ 30 días → S/…"
+                value={extraContent}
+                onChange={(e) => setExtraContent(e.target.value)}
+              />
+            </div>
+          ) : null}
 
-          <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:justify-end">
+          <div className="flex flex-col gap-2 pt-2 sm:col-span-2 sm:flex-row sm:justify-end">
             <button
               type="button"
               className="rounded-full border border-white/20 px-4 py-2.5 text-sm font-bold text-white hover:bg-white/10"
@@ -275,7 +378,7 @@ export function PlanMarketingModal({ plan, onClose, onSaved }: Props) {
               disabled={pending}
               className="rounded-full bg-white px-4 py-2.5 text-sm font-extrabold text-mimi-black hover:bg-mimi-muted/40 disabled:opacity-60"
             >
-              {pending ? "Guardando…" : "Guardar anuncio"}
+              {pending ? "Guardando…" : "Guardar"}
             </button>
           </div>
         </form>

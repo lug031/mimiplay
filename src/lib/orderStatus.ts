@@ -38,6 +38,7 @@ export const CATEGORY_LABEL: Record<string, string> = {
 };
 
 const PAYMENT_METHOD_LABEL: Record<string, string> = {
+  YAPE_PLIN: "Yape | Plin",
   YAPE: "Pago móvil (A)",
   PLIN: "Pago móvil (B)",
   TRANSFERENCIA: "Transferencia",

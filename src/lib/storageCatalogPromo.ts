@@ -5,7 +5,7 @@ const MAX_BYTES = 2 * 1024 * 1024;
 
 /**
  * Sube imagen de anuncio de plan. Debe coincidir con `catalog-promo-images/*` en `amplify/storage/resource.ts`.
- * Guarda en `ServicePlan.promoImageUrl` la ruta devuelta (no la URL firmada), para poder renovar firmas en la tienda.
+ * Guarda en el anuncio (`ServicePlan.promoImageUrl`) la ruta devuelta (no la URL firmada), para renovar firmas en la tienda.
  */
 export async function uploadCatalogPromoImage(file: File): Promise<string> {
   if (!file.type.startsWith("image/")) {

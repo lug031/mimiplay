@@ -106,7 +106,10 @@ export function ClientOrdersPage() {
               className="flex flex-col rounded-mimi border border-white/10 bg-mimi-elevated px-4 py-3 shadow-sm transition hover:border-white/25 sm:flex-row sm:items-center sm:justify-between"
             >
               <div>
-                <p className="font-bold text-white">{r.planLabel}</p>
+                <p className="font-bold text-white">
+                  <span className="text-white/70">Anuncio · </span>
+                  {r.planLabel}
+                </p>
                 <p className="text-xs text-mimi-muted">
                   {r.createdAt ? new Date(r.createdAt).toLocaleString() : "Pedido"}
                 </p>

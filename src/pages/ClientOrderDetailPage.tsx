@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getUrl } from "aws-amplify/storage";
 import { dataClient } from "@/lib/dataClient";
+import { formatPlanPrice } from "@/lib/formatPlanPrice";
 import { orderStatusLabel } from "@/lib/orderStatus";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 
@@ -12,6 +13,7 @@ export function ClientOrderDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [planLabel, setPlanLabel] = useState("");
+  const [chosenSummary, setChosenSummary] = useState<string | null>(null);
   const [proofUrl, setProofUrl] = useState<string | null>(null);
   const [credentials, setCredentials] = useState<{
     email?: string | null;
@@ -33,6 +35,16 @@ export function ClientOrderDetailPage() {
           return;
         }
         if (!cancelled) setStatus(o.status);
+        const chosenLabel = (o as { chosenOptionLabel?: string | null }).chosenOptionLabel;
+        const chosenDays = (o as { chosenDurationDays?: number | null }).chosenDurationDays;
+        const chosenPrice = (o as { chosenPricePen?: number | null }).chosenPricePen;
+        if (!cancelled) {
+          setChosenSummary(
+            chosenLabel != null && chosenLabel !== ""
+              ? `${chosenLabel} · ${chosenDays ?? "—"} días · ${formatPlanPrice(chosenPrice ?? 0)}`
+              : null,
+          );
+        }
         if (o.servicePlanID) {
           const pr = await dataClient.models.ServicePlan.get({ id: o.servicePlanID });
           const p = pr.data;
@@ -90,7 +102,14 @@ export function ClientOrderDetailPage() {
         <div className="mt-6 space-y-6">
           <div>
             <h1 className="text-2xl font-extrabold text-white">Detalle del pedido</h1>
-            <p className="mt-1 text-sm text-mimi-muted">{planLabel}</p>
+            <p className="mt-1 text-sm text-mimi-muted">
+              <span className="font-bold text-white/80">Anuncio:</span> {planLabel}
+            </p>
+            {chosenSummary ? (
+              <p className="mt-1 text-sm text-white/85">
+                <span className="font-bold text-white/80">Opción contratada:</span> {chosenSummary}
+              </p>
+            ) : null}
             <p className="mt-2 max-w-xl text-sm text-mimi-muted">
               Seguimiento comercial de tu compra de acceso: validación de pago, asignación desde inventario y entrega de
               credenciales cuando corresponda.

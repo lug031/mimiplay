@@ -16,7 +16,8 @@ type Props = {
   plans: PlanRow[];
   loading: boolean;
   error: string | null;
-  buildCtaTo: (planId: string) => string;
+  /** `opcion` se añade a la URL cuando el anuncio tiene varias opciones o una opción explícita en JSON. */
+  buildCtaTo: (planId: string, optionId?: string) => string;
   ctaLabel?: string;
   bannerTitle?: string;
   bannerSubtitle?: string;
@@ -29,10 +30,10 @@ export function PlanMarketplace({
   loading,
   error,
   buildCtaTo,
-  ctaLabel = "Solicitar plan",
-  bannerTitle = "Catálogo comercial de accesos",
+  ctaLabel = "Comprar acceso",
+  bannerTitle = "Catálogo de anuncios",
   bannerSubtitle =
-    "Planes publicados por plataforma y categoría. Tras elegir uno, formaliza el pago con comprobante para activar la compra y el seguimiento de tu pedido.",
+    "Anuncios por plataforma y categoría. Al elegir uno, formaliza el pago con comprobante; te damos seguimiento cuando quede validado.",
   searchText = "",
   catalogChrome = false,
 }: Props) {
@@ -104,10 +105,10 @@ export function PlanMarketplace({
         )}
 
         {!loading && !error && plans.length === 0 && (
-          <p className="mt-8 text-sm text-mimi-muted">Aún no hay planes publicados en el catálogo.</p>
+          <p className="mt-8 text-sm text-mimi-muted">Aún no hay anuncios en el catálogo.</p>
         )}
         {!loading && !error && plans.length > 0 && filtered.length === 0 && (
-          <p className="mt-8 text-sm text-mimi-muted">No hay planes con estos filtros. Prueba otra categoría o quita filtros.</p>
+          <p className="mt-8 text-sm text-mimi-muted">No hay anuncios con estos filtros. Prueba otra categoría o quita filtros.</p>
         )}
 
         <div className="mt-6 flex flex-col gap-4">

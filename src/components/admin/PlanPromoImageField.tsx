@@ -61,7 +61,7 @@ type Props = {
 };
 
 /**
- * Campo unificado: URL pública o subida a `catalog-promo-images/*` (misma lógica en modal y en “Nuevo plan”).
+ * Campo unificado: URL pública o subida a `catalog-promo-images/*` (modal y formulario de anuncio).
  */
 export function PlanPromoImageField({
   inputId,

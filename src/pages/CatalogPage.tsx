@@ -35,11 +35,16 @@ export function CatalogPage() {
             plans={plans}
             loading={loading}
             error={error}
-            buildCtaTo={(planId) => `/app/pedido/nuevo?planId=${encodeURIComponent(planId)}`}
-            ctaLabel="Suscribirme"
+            buildCtaTo={(planId, opcion) => {
+              const q = new URLSearchParams();
+              q.set("anuncioId", planId);
+              if (opcion) q.set("opcion", opcion);
+              return `/app/pedido/nuevo?${q.toString()}`;
+            }}
+            ctaLabel="Lo quiero"
             catalogChrome
-            bannerTitle="Conexión para conocer los planes disponibles"
-            bannerSubtitle="Filtra por plataforma y categoría. Los precios mostrados son los vigentes para nuevas compras. Inicia sesión para generar el pedido y adjuntar tu comprobante."
+            bannerTitle="Anuncios y accesos disponibles"
+            bannerSubtitle="Filtra por plataforma y categoría. Los precios son los vigentes para nuevas compras. Inicia sesión para generar el pedido y adjuntar tu comprobante."
             searchText={searchQuery}
           />
         </div>

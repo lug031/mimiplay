@@ -1,14 +1,13 @@
 /**
- * Campos opcionales del anuncio comercial (paridad con mensajes de WhatsApp).
- * Vacíos = no se muestran en la tarjeta.
+ * Campos de presentación del anuncio en el catálogo. Vacíos = no se muestran en la tarjeta.
  */
 export type CardPresentation = "STANDARD" | "EVENT";
 
 export type PlanMarketingFields = {
-  /** STANDARD = ficha catálogo; EVENT = anuncio tipo partido/UFC (prioriza texto libre e imagen). */
+  /** STANDARD = ficha catálogo; EVENT = tarjeta con texto largo e imagen. */
   cardPresentation?: CardPresentation | string | null;
   promoImageUrl?: string | null;
-  /** Titular grande en la tarjeta; si falta se usa `planName`. */
+  /** Titular grande en la tarjeta; si falta se usa el nombre del anuncio. */
   cardTitle?: string | null;
   accessSummary?: string | null;
   qualitySummary?: string | null;
@@ -29,7 +28,7 @@ export function isEventCardPresentation(p: PlanMarketingFields): boolean {
   return p.cardPresentation === "EVENT";
 }
 
-/** True si el plan tiene imagen o algún texto de anuncio (paridad con mensajes de WhatsApp). */
+/** True si el anuncio tiene imagen o texto de presentación rellenado. */
 export function planRowHasRichMarketing(p: PlanMarketingFields): boolean {
   if (p.promoImageUrl?.trim()) return true;
   if (p.cardTitle?.trim()) return true;

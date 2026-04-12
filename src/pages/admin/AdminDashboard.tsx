@@ -4,7 +4,7 @@ const cards = [
   {
     to: "/admin/catalogo",
     title: "Catálogo",
-    desc: "Define plataformas y planes comerciales (precio, vigencia, categoría) visibles para la venta.",
+    desc: "Define plataformas y anuncios (precio, vigencia, tarjeta en tienda) visibles para la venta.",
   },
   {
     to: "/admin/cola",

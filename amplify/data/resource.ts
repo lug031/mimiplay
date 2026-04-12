@@ -14,6 +14,7 @@ const schema = a.schema({
       category: a.enum(["STREAMING", "SPORTS", "PC_APP", "OTHER"]),
       active: a.boolean(),
       sortOrder: a.integer(),
+      /** Anuncios comerciales de esta plataforma (modelo ServicePlan). */
       plans: a.hasMany("ServicePlan", "platformID"),
       accounts: a.hasMany("PlatformAccount", "platformID"),
     })
@@ -23,6 +24,7 @@ const schema = a.schema({
       allow.groups(["admin"]).to(["create", "read", "update", "delete"]),
     ]),
 
+  /** Anuncio comercial en tienda (streaming, software, evento, etc.). Nombre interno: ServicePlan. */
   ServicePlan: a
     .model({
       platformID: a.id().required(),
@@ -32,8 +34,7 @@ const schema = a.schema({
       pricePen: a.float().required(),
       planVariantKey: a.string(),
       /**
-       * Contenido del anuncio (misma información que en WhatsApp): imagen, titular, datos técnicos,
-       * avisos y bloque libre para listas de precios / tiers / complementos.
+       * Presentación en tienda: imagen, titular, datos técnicos, avisos y texto libre.
        * El pedido sigue anclado a name + durationDays + pricePen del registro.
        */
       promoImageUrl: a.string(),
@@ -46,8 +47,13 @@ const schema = a.schema({
       warningNotice: a.string(),
       extraContent: a.string(),
       /**
-       * STANDARD: ficha tipo catálogo (acceso, calidad, etc.).
-       * EVENT: promoción tipo WhatsApp (UFC, partidos, listas de precios en texto libre); el CTA sigue siendo este plan.
+       * JSON: [{ id, label, durationDays, pricePen }, ...]. Si hay varias, el cliente elige en catálogo y checkout.
+       * Vacío = solo usan `durationDays` y `pricePen` del registro.
+       */
+      purchaseOptionsJson: a.string(),
+      /**
+       * STANDARD: ficha de catálogo (acceso, calidad, etc.).
+       * EVENT: tarjeta con texto largo (varias plataformas/opciones en el cuerpo); el CTA sigue siendo este anuncio.
        */
       cardPresentation: a.enum(["STANDARD", "EVENT"]),
       active: a.boolean(),
@@ -105,6 +111,10 @@ const schema = a.schema({
       paymentProofStorageKey: a.string(),
       payerFullName: a.string(),
       payerSecurityCode: a.string(),
+      /** Opción elegida al comprar (si el anuncio tenía varias). */
+      chosenPricePen: a.float(),
+      chosenDurationDays: a.integer(),
+      chosenOptionLabel: a.string(),
       activationStartsAt: a.datetime(),
       fulfilledAt: a.datetime(),
       credentialEmail: a.string(),
