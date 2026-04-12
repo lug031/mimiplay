@@ -18,8 +18,14 @@ export function AuthChrome({ variant }: Props) {
           <nav className="flex items-center gap-4 text-sm font-semibold text-tcr-dark">
             {variant === "client" ? (
               <>
+                <Link className="rounded-lg px-2 py-1 hover:bg-white" to="/catalogo">
+                  Catálogo
+                </Link>
                 <Link className="rounded-lg px-2 py-1 hover:bg-white" to="/app/inicio">
                   Inicio
+                </Link>
+                <Link className="rounded-lg px-2 py-1 hover:bg-white" to="/app/planes">
+                  Planes
                 </Link>
                 <Link className="rounded-lg px-2 py-1 hover:bg-white" to="/app/pedidos">
                   Mis pedidos
@@ -30,11 +36,17 @@ export function AuthChrome({ variant }: Props) {
                 <Link className="rounded-lg px-2 py-1 hover:bg-white" to="/admin">
                   Panel
                 </Link>
-                <Link className="rounded-lg px-2 py-1 hover:bg-white" to="/admin/inventario">
-                  Inventario
+                <Link className="rounded-lg px-2 py-1 hover:bg-white" to="/admin/catalogo">
+                  Catálogo
+                </Link>
+                <Link className="rounded-lg px-2 py-1 hover:bg-white" to="/admin/pedidos">
+                  Pedidos
                 </Link>
                 <Link className="rounded-lg px-2 py-1 hover:bg-white" to="/admin/cola">
-                  Cola de asignación
+                  Cola
+                </Link>
+                <Link className="rounded-lg px-2 py-1 hover:bg-white" to="/admin/inventario">
+                  Inventario
                 </Link>
               </>
             )}

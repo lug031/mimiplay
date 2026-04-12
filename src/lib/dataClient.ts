@@ -1,4 +1,4 @@
 import { generateClient } from "aws-amplify/data";
+import type { Schema } from "../../amplify/data/resource";
 
-/** Cliente tipado tras `ampx sandbox` (tipos generados opcionalmente con ampx). */
-export const dataClient = generateClient();
+export const dataClient = generateClient<Schema>();

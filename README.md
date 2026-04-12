@@ -33,8 +33,16 @@ npm run dev
 ## Rutas de la app
 
 - `/` — Landing pública.
-- `/app/*` — Portal cliente (Authenticator).
-- `/admin/*` — Panel admin (Authenticator + pertenencia al grupo Cognito `admin`).
+- `/catalogo` — Catálogo de planes (lectura con **API Key**, sin login).
+- `/app/*` — Portal cliente (Authenticator): planes, nuevo pedido con comprobante, mis pedidos y detalle.
+- `/admin/*` — Panel admin (Authenticator + grupo **admin**): catálogo, cola, pedidos, inventario.
+
+### Flujo operativo (fases 1–3)
+
+1. **Admin** crea **plataformas** y **planes** en `/admin/catalogo` y cuentas en `/admin/inventario`.
+2. **Cliente** (registrado) elige plan en `/app/planes`, completa datos de pago y sube comprobante → pedido en estado `PAYMENT_SUBMITTED`.
+3. **Admin** en `/admin/cola` o `/admin/pedidos` abre el pedido, ve el comprobante, **confirma pago** → `PAYMENT_CONFIRMED`.
+4. **Admin** entrega: puede elegir una cuenta **AVAILABLE** del inventario (misma plataforma) o escribir credenciales a mano; indica fecha/hora de renovación → `FULFILLED` y el cliente las ve en `/app/pedidos/:id`.
 
 ## Admin en Cognito
 

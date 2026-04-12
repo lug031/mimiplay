@@ -37,9 +37,9 @@ export function LandingPage() {
             <a href="#como-funciona" className="rounded-lg px-3 py-2 text-sm font-semibold hover:bg-tcr-bg">
               Cómo funciona
             </a>
-            <a href="#catalogo" className="rounded-lg px-3 py-2 text-sm font-semibold hover:bg-tcr-bg">
+            <Link to="/catalogo" className="rounded-lg px-3 py-2 text-sm font-semibold hover:bg-tcr-bg">
               Catálogo
-            </a>
+            </Link>
             <a href="#contacto" className="rounded-lg px-3 py-2 text-sm font-semibold hover:bg-tcr-bg">
               Contacto
             </a>
@@ -80,12 +80,12 @@ export function LandingPage() {
                 >
                   Entrar al portal
                 </Link>
-                <a
-                  href="#catalogo"
+                <Link
+                  to="/catalogo"
                   className="rounded-2xl border border-tcr-border bg-white px-5 py-3 text-sm font-bold shadow-sm hover:border-tcr-teal"
                 >
-                  Ver categorías
-                </a>
+                  Ver catálogo y precios
+                </Link>
               </div>
             </div>
           </div>
@@ -123,20 +123,17 @@ export function LandingPage() {
 
         <section id="catalogo" className="py-16" data-reveal>
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <h2 className="text-center text-2xl font-extrabold sm:text-3xl">Catálogo (próximamente datos reales)</h2>
+            <h2 className="text-center text-2xl font-extrabold sm:text-3xl">Catálogo en vivo</h2>
             <p className="mx-auto mt-4 max-w-2xl text-center text-tcr-text-muted">
-              Los planes se cargarán desde Amplify Data (<code className="text-tcr-dark">Platform</code>,{" "}
-              <code className="text-tcr-dark">ServicePlan</code>) con lectura pública para la vitrina.
+              Planes y precios cargados desde la nube. Para comprar necesitas una cuenta en el portal.
             </p>
-            <div className="mt-10 grid gap-4 sm:grid-cols-3">
-              {["Streaming", "Deportes / IPTV", "Apps PC"].map((label) => (
-                <div
-                  key={label}
-                  className="rounded-2xl border border-dashed border-tcr-border bg-tcr-bg/50 p-6 text-center font-semibold text-tcr-text-muted"
-                >
-                  {label}
-                </div>
-              ))}
+            <div className="mt-8 flex justify-center">
+              <Link
+                to="/catalogo"
+                className="inline-flex rounded-full bg-tcr-teal px-8 py-3 text-sm font-bold text-white hover:bg-[#007a8f]"
+              >
+                Abrir catálogo completo
+              </Link>
             </div>
           </div>
         </section>
