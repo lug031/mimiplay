@@ -57,7 +57,7 @@ export function AdminSnackbarProvider({ children }: { children: ReactNode }) {
     <AdminSnackbarContext.Provider value={value}>
       {children}
       <div
-        className="pointer-events-none fixed bottom-0 right-0 z-[200] flex w-full max-w-md flex-col gap-2 p-3 sm:bottom-4 sm:right-4 sm:p-4"
+        className="pointer-events-none fixed top-0 right-0 z-[200] flex w-full max-w-md flex-col-reverse gap-2 p-3 sm:top-4 sm:right-4 sm:p-4"
         aria-live="polite"
         aria-relevant="additions text"
       >

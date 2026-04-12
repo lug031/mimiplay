@@ -6,10 +6,13 @@ import { MIMIPLAY_PAYMENT } from "@/config/mimiPaymentFlow";
 import { formatPlanPrice } from "@/lib/formatPlanPrice";
 import { CATEGORY_LABEL } from "@/lib/orderStatus";
 import {
-  findPurchaseOption,
-  parsePurchaseOptionsJson,
-  purchaseChoicesForPlan,
-  type PurchaseOption,
+  catalogTierRowCaption,
+  checkoutChoicesGrouped,
+  checkoutTierChoices,
+  findCheckoutTierChoice,
+  formatChosenTierLabel,
+  parsePurchaseTierCatalog,
+  type CheckoutTierChoice,
 } from "@/lib/purchaseOptions";
 
 export function ClientNewOrderPage() {
@@ -23,7 +26,7 @@ export function ClientNewOrderPage() {
   const [category, setCategory] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const [choices, setChoices] = useState<PurchaseOption[]>([]);
+  const [choices, setChoices] = useState<CheckoutTierChoice[]>([]);
   const [selectedId, setSelectedId] = useState("");
 
   const [payerFullName, setPayerFullName] = useState("");
@@ -48,22 +51,21 @@ export function ClientNewOrderPage() {
         }
         const platRes = await dataClient.models.Platform.get({ id: plan.platformID });
         const plat = platRes.data;
-        const purchaseOptions = parsePurchaseOptionsJson(
+        const catalog = parsePurchaseTierCatalog(
           (plan as { purchaseOptionsJson?: string | null }).purchaseOptionsJson,
         );
-        const ch = purchaseChoicesForPlan({
-          purchaseOptions,
+        const ch = checkoutTierChoices(catalog, {
           durationDays: plan.durationDays,
           pricePen: plan.pricePen,
         });
-        const fromUrl = findPurchaseOption(ch, opcionParam);
+        const fromUrl = findCheckoutTierChoice(ch, opcionParam);
         if (!cancelled) {
           setPlanName(plan.name);
           setPlatformName(plat?.name ?? "—");
           setCategory(plat?.category ?? null);
           setChoices(ch);
           if (ch.length > 1) {
-            setSelectedId(fromUrl?.id ?? "");
+            setSelectedId(fromUrl?.id ?? ch[0]?.id ?? "");
           } else {
             setSelectedId(ch[0]?.id ?? "");
           }
@@ -81,6 +83,8 @@ export function ClientNewOrderPage() {
     () => choices.find((c) => c.id === selectedId) ?? (choices.length === 1 ? choices[0] : undefined),
     [choices, selectedId],
   );
+
+  const checkoutGroups = useMemo(() => checkoutChoicesGrouped(choices), [choices]);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -115,7 +119,7 @@ export function ClientNewOrderPage() {
         payerSecurityCode: payerSecurityCode.trim(),
         chosenPricePen: selected.pricePen,
         chosenDurationDays: selected.durationDays,
-        chosenOptionLabel: selected.label,
+        chosenOptionLabel: formatChosenTierLabel(selected),
       });
       if (errors?.length) {
         throw new Error(errors.map((x) => x.message).join("; "));
@@ -173,27 +177,37 @@ export function ClientNewOrderPage() {
         {showChoicePicker ? (
           <div className="mt-4">
             <p className="text-xs font-extrabold uppercase tracking-wide text-white/60">Opción que compras</p>
-            <fieldset className="mt-2 space-y-2 rounded-mimi border border-white/10 bg-mimi-black/40 p-3">
-              {choices.map((c) => (
-                <label
-                  key={c.id}
-                  className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-white/10 px-2.5 py-2 hover:bg-white/5 has-[:checked]:border-amber-400/45 has-[:checked]:bg-amber-500/10"
-                >
-                  <input
-                    type="radio"
-                    className="mt-1"
-                    name="checkout-option"
-                    value={c.id}
-                    checked={selectedId === c.id}
-                    onChange={() => setSelectedId(c.id)}
-                  />
-                  <span className="min-w-0 text-sm">
-                    <span className="font-bold text-white">{c.label}</span>
-                    <span className="mt-0.5 block text-xs text-white/60">
-                      {formatPlanPrice(c.pricePen)} · {c.durationDays} días
-                    </span>
-                  </span>
-                </label>
+            <fieldset className="mt-2 space-y-4 rounded-mimi border border-white/10 bg-mimi-black/40 p-3">
+              {checkoutGroups.map((g) => (
+                <div key={g.groupId} className="space-y-2">
+                  {g.groupTitle.trim() ? (
+                    <p className="text-[10px] font-extrabold uppercase tracking-wide text-white/65">
+                      {g.groupEmoji ? <span className="mr-1 font-normal normal-case">{g.groupEmoji}</span> : null}
+                      {g.groupTitle}
+                    </p>
+                  ) : null}
+                  {g.choices.map((c) => (
+                    <label
+                      key={c.id}
+                      className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-white/10 px-2.5 py-2 hover:bg-white/5 has-[:checked]:border-amber-400/45 has-[:checked]:bg-amber-500/10"
+                    >
+                      <input
+                        type="radio"
+                        className="mt-1"
+                        name="checkout-option"
+                        value={c.id}
+                        checked={selectedId === c.id}
+                        onChange={() => setSelectedId(c.id)}
+                      />
+                      <span className="min-w-0 text-sm">
+                        <span className="font-bold text-white">{catalogTierRowCaption(c)}</span>
+                        <span className="mt-0.5 block text-xs text-white/60">
+                          {formatPlanPrice(c.pricePen)} · {c.durationDays} días
+                        </span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
               ))}
             </fieldset>
           </div>
@@ -203,7 +217,7 @@ export function ClientNewOrderPage() {
             <>
               {selected.durationDays} días · <span className="font-extrabold text-white">{formatPlanPrice(selected.pricePen)}</span>
               {selected.id !== "_base" ? (
-                <span className="block text-xs text-white/50">{selected.label}</span>
+                <span className="block text-xs text-white/50">{formatChosenTierLabel(selected)}</span>
               ) : null}
             </>
           ) : (
@@ -230,21 +244,15 @@ export function ClientNewOrderPage() {
           <p className="text-xs font-extrabold uppercase tracking-wide text-amber-200/90">Importante</p>
           <ul className="mt-2 space-y-2 text-sm text-white/80">
             <li className="flex gap-2">
-              <span aria-hidden>
-                🔹
-              </span>
+              <span aria-hidden>🔹</span>
               <span>Envía la foto del comprobante de pago. 📷</span>
             </li>
             <li className="flex gap-2">
-              <span aria-hidden>
-                🔹
-              </span>
+              <span aria-hidden>🔹</span>
               <span>Verifica el número, nombre y monto.</span>
             </li>
             <li className="flex gap-2">
-              <span aria-hidden>
-                🔹
-              </span>
+              <span aria-hidden>🔹</span>
               <span>Pregunta por nuestros combos y ahorra más.</span>
             </li>
           </ul>

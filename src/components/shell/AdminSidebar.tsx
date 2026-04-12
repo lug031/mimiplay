@@ -15,12 +15,18 @@ export function AdminSidebar() {
   const { signOutUser, userEmail } = useClientAuth();
 
   return (
-    <aside className="flex w-full shrink-0 flex-col border-b border-white/10 bg-mimi-black text-white md:w-60 md:border-b-0 md:border-r md:border-white/10">
-      <div className="border-b border-white/10 px-4 py-5">
+    <aside
+      className={
+        "flex w-full shrink-0 flex-col border-b border-white/10 bg-mimi-black text-white " +
+        "md:fixed md:inset-y-0 md:left-0 md:z-40 md:w-60 md:overflow-hidden " +
+        "md:border-b-0 md:border-r md:border-white/10"
+      }
+    >
+      <div className="shrink-0 border-b border-white/10 px-4 py-5">
         <MimiPlayLogo to="/admin" heightClass="h-8" />
         <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-mimi-muted">Administración</p>
       </div>
-      <nav className="flex flex-1 flex-col gap-0.5 p-2">
+      <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overscroll-contain p-2 [scrollbar-gutter:stable]">
         {nav.map((item) => (
           <NavLink
             key={item.to}
@@ -28,7 +34,7 @@ export function AdminSidebar() {
             end={Boolean(item.end)}
             className={({ isActive }) =>
               [
-                "rounded-mimi px-3 py-2.5 text-sm font-semibold transition",
+                "shrink-0 rounded-mimi px-3 py-2.5 text-sm font-semibold transition",
                 isActive ? "bg-white text-mimi-black" : "text-white/70 hover:bg-white/10 hover:text-white",
               ].join(" ")
             }
@@ -37,7 +43,7 @@ export function AdminSidebar() {
           </NavLink>
         ))}
       </nav>
-      <div className="border-t border-white/10 p-3">
+      <div className="shrink-0 border-t border-white/10 p-3">
         <Link
           to="/catalogo"
           className="mb-2 block rounded-mimi px-3 py-2 text-xs font-semibold text-white/90 hover:bg-white/10"

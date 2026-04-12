@@ -30,7 +30,7 @@ export function CatalogPage() {
   return (
     <div className="font-manrope">
       <div className="bg-mimi-surface px-0 pb-8 pt-6 sm:pb-10">
-        <div className="mx-auto max-w-5xl">
+        <div className="mx-auto max-w-7xl px-4 sm:px-5">
           <PlanMarketplace
             plans={plans}
             loading={loading}

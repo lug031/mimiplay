@@ -1,6 +1,6 @@
 import { dataClient } from "@/lib/dataClient";
 import type { PlanMarketingFields } from "@/lib/planMarketing";
-import { parsePurchaseOptionsJson, type PurchaseOption } from "@/lib/purchaseOptions";
+import { parsePurchaseTierCatalog, type PurchaseTierCatalog } from "@/lib/purchaseOptions";
 
 /** Una fila del catálogo = un anuncio publicado (API: ServicePlan). */
 export type PlanRow = PlanMarketingFields & {
@@ -15,8 +15,8 @@ export type PlanRow = PlanMarketingFields & {
   platformName: string;
   platformSlug: string;
   category: string | null | undefined;
-  /** Opciones de precio/vigencia; null = solo `durationDays`/`pricePen` del registro. */
-  purchaseOptions: PurchaseOption[] | null;
+  /** Catálogo de precios (grupos + tiers). Vacío = usar solo `durationDays`/`pricePen` del registro. */
+  purchaseTierCatalog: PurchaseTierCatalog;
 };
 
 function marketingFromPlan(plan: {
@@ -75,7 +75,7 @@ export async function listCatalogPlans(): Promise<PlanRow[]> {
       platformName: plat.name,
       platformSlug: plat.slug,
       category: plat.category,
-      purchaseOptions: parsePurchaseOptionsJson(plan.purchaseOptionsJson),
+      purchaseTierCatalog: parsePurchaseTierCatalog(plan.purchaseOptionsJson),
     });
   }
   rows.sort((a, b) => {
@@ -114,7 +114,7 @@ export async function listCatalogPlansAuthed(): Promise<PlanRow[]> {
       platformName: plat.name,
       platformSlug: plat.slug,
       category: plat.category,
-      purchaseOptions: parsePurchaseOptionsJson(plan.purchaseOptionsJson),
+      purchaseTierCatalog: parsePurchaseTierCatalog(plan.purchaseOptionsJson),
     });
   }
   rows.sort((a, b) => {

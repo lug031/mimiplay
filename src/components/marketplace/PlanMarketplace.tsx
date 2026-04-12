@@ -111,7 +111,13 @@ export function PlanMarketplace({
           <p className="mt-8 text-sm text-mimi-muted">No hay anuncios con estos filtros. Prueba otra categoría o quita filtros.</p>
         )}
 
-        <div className="mt-6 flex flex-col gap-4">
+        <div
+          className={
+            catalogChrome
+              ? "mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-5 lg:gap-6 xl:grid-cols-3 xl:gap-6 items-stretch"
+              : "mt-6 flex flex-col gap-4"
+          }
+        >
           {filtered.map((p) => (
             <PlanOfferCard
               key={p.planId}

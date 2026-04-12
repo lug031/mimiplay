@@ -1,9 +1,15 @@
+import { MimiPlayLogo } from "@/components/brand/MimiPlayLogo";
 import { MimiButton } from "@/components/ui/MimiButton";
 import type { PlanRow } from "@/lib/catalogApi";
 import { isEventCardPresentation, planDisplayTitle } from "@/lib/planMarketing";
 import { CATEGORY_LABEL } from "@/lib/orderStatus";
 import { formatPlanPrice } from "@/lib/formatPlanPrice";
-import { purchaseChoicesForPlan } from "@/lib/purchaseOptions";
+import {
+  catalogTierRowCaption,
+  checkoutTierChoices,
+  type CheckoutTierChoice,
+  type PurchaseTierGroup,
+} from "@/lib/purchaseOptions";
 import { getUrl } from "aws-amplify/storage";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
@@ -40,69 +46,205 @@ type Props = {
 };
 
 function usePlanPurchaseSelection(p: PlanRow, buildCtaTo: Props["buildCtaTo"]) {
-  const poKey = JSON.stringify(p.purchaseOptions ?? null);
+  const catalogKey = JSON.stringify(p.purchaseTierCatalog);
   const choices = useMemo(
-    () => purchaseChoicesForPlan({ purchaseOptions: p.purchaseOptions, durationDays: p.durationDays, pricePen: p.pricePen }),
-    [p.planId, p.durationDays, p.pricePen, poKey],
+    () => checkoutTierChoices(p.purchaseTierCatalog, { durationDays: p.durationDays, pricePen: p.pricePen }),
+    [p.planId, p.durationDays, p.pricePen, catalogKey],
   );
   const [selectedId, setSelectedId] = useState("");
   useEffect(() => {
     setSelectedId(choices[0]?.id ?? "");
-  }, [p.planId, poKey, choices]);
-  const selected = choices.find((c) => c.id === selectedId) ?? choices[0];
+  }, [p.planId, catalogKey, choices]);
+  const selected: CheckoutTierChoice | undefined = choices.find((c) => c.id === selectedId) ?? choices[0];
   const showPicker = choices.length > 1;
   const passOpcion = Boolean(selected && (choices.length > 1 || selected.id !== "_base"));
   const ctaHref = useMemo(
     () => buildCtaTo(p.planId, passOpcion ? selected?.id : undefined),
     [buildCtaTo, p.planId, passOpcion, selected?.id],
   );
-  return { choices, selectedId, setSelectedId, selected, showPicker, passOpcion, ctaHref };
+  return { selectedId, setSelectedId, selected, showPicker, passOpcion, ctaHref };
+}
+
+function PlanCardPromoImagePlaceholder({ pulse, logoClassName = "" }: { pulse: boolean; logoClassName?: string }) {
+  return (
+    <div
+      className={`absolute inset-0 flex items-center justify-center bg-mimi-black ${pulse ? "[&_img]:animate-pulse" : ""}`}
+      aria-hidden
+    >
+      <MimiPlayLogo variant="icon" to={false} heightClass="h-14 w-14 sm:h-16 sm:w-16" className={`opacity-90 ${logoClassName}`} />
+    </div>
+  );
 }
 
 function PlanCardPromoImage({
   raw,
   title,
   maxClass = "max-h-56",
+  catalogChrome = false,
 }: {
   raw: string;
   title: string;
   maxClass?: string;
+  /** Imagen tipo tarjeta de catálogo: esquinas superiores redondeadas y relación fija. */
+  catalogChrome?: boolean;
 }) {
   const isHttp = /^https?:\/\//i.test(raw);
-  const [src, setSrc] = useState<string | null>(() => (isHttp ? raw : null));
+  const [resolvedSrc, setResolvedSrc] = useState<string | null>(() => (isHttp ? raw : null));
+  const [urlState, setUrlState] = useState<"pending" | "ready" | "fail">(() => (isHttp ? "ready" : "pending"));
+  const [imgLoaded, setImgLoaded] = useState(false);
   const [broken, setBroken] = useState(false);
 
   useEffect(() => {
-    if (isHttp) return;
+    setBroken(false);
+    setImgLoaded(false);
+    if (isHttp) {
+      setResolvedSrc(raw);
+      setUrlState("ready");
+      return;
+    }
+    setUrlState("pending");
+    setResolvedSrc(null);
     let cancelled = false;
     getUrl({ path: raw })
       .then(({ url }) => {
-        if (!cancelled) setSrc(url.toString());
+        if (!cancelled) {
+          setResolvedSrc(url.toString());
+          setUrlState("ready");
+        }
       })
       .catch(() => {
-        if (!cancelled) setSrc(null);
+        if (!cancelled) {
+          setResolvedSrc(null);
+          setUrlState("fail");
+        }
       });
     return () => {
       cancelled = true;
     };
   }, [raw, isHttp]);
 
-  if (!src || broken) return null;
+  const showPhoto = urlState === "ready" && Boolean(resolvedSrc) && imgLoaded && !broken;
+  const pulseLogo =
+    urlState === "pending" || (Boolean(resolvedSrc) && !imgLoaded && !broken);
+
+  if (catalogChrome) {
+    return (
+      <div className="relative overflow-hidden rounded-t-2xl bg-mimi-black">
+        {!showPhoto ? <PlanCardPromoImagePlaceholder pulse={pulseLogo} /> : null}
+        {resolvedSrc && urlState === "ready" ? (
+          <img
+            src={resolvedSrc}
+            alt={title}
+            className={`relative z-[1] aspect-[16/10] w-full max-h-[220px] object-cover object-center transition-opacity duration-300 sm:max-h-[240px] ${showPhoto ? "opacity-100" : "opacity-0"}`}
+            onLoad={() => {
+              setImgLoaded(true);
+              setBroken(false);
+            }}
+            onError={() => {
+              setBroken(true);
+              setImgLoaded(false);
+            }}
+          />
+        ) : null}
+      </div>
+    );
+  }
+
   return (
-    <div className="relative border-b border-white/10 bg-mimi-black">
-      <img
-        src={src}
-        alt={title}
-        className={`w-full object-cover object-center ${maxClass}`}
-        onLoad={() => setBroken(false)}
-        onError={() => setBroken(true)}
-      />
+    <div className={`relative min-h-36 border-b border-white/10 bg-mimi-black sm:min-h-40`}>
+      {!showPhoto ? <PlanCardPromoImagePlaceholder pulse={pulseLogo} /> : null}
+      {resolvedSrc && urlState === "ready" ? (
+        <img
+          src={resolvedSrc}
+          alt={title}
+          className={`relative z-[1] w-full object-cover object-center transition-opacity duration-300 ${maxClass} ${showPhoto ? "opacity-100" : "opacity-0"}`}
+          onLoad={() => {
+            setImgLoaded(true);
+            setBroken(false);
+          }}
+          onError={() => {
+            setBroken(true);
+            setImgLoaded(false);
+          }}
+        />
+      ) : null}
     </div>
   );
 }
 
+type CatalogTierPickerProps = {
+  planId: string;
+  groups: PurchaseTierGroup[];
+  selectedId: string;
+  setSelectedId: (id: string) => void;
+  variant: "standard" | "event";
+};
+
+function CatalogPurchaseTierPicker({ planId, groups, selectedId, setSelectedId, variant }: CatalogTierPickerProps) {
+  const isEvent = variant === "event";
+  const radioName = isEvent ? `purchase-event-${planId}` : `purchase-${planId}`;
+  const rowClass = isEvent
+    ? "flex cursor-pointer items-center gap-2 rounded-xl border border-orange-400/20 bg-mimi-black/45 px-3 py-2 transition hover:border-orange-400/35 has-[:checked]:border-orange-400/55 has-[:checked]:bg-orange-500/10"
+    : "flex cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-mimi-black/40 px-3 py-2 transition hover:border-white/18 has-[:checked]:border-amber-400/45 has-[:checked]:bg-amber-500/[0.08]";
+  const radioClass = isEvent
+    ? "h-3.5 w-3.5 shrink-0 border-white/40 bg-mimi-black accent-orange-500 focus:ring-orange-500/40"
+    : "h-3.5 w-3.5 shrink-0 border-white/40 bg-mimi-black accent-amber-500 focus:ring-amber-500/40";
+
+  return (
+    <fieldset className="space-y-4 border-0 p-0">
+      <legend className="sr-only">Elige una opción de compra</legend>
+      {groups.map((g) => (
+        <div key={g.id} className="space-y-1.5">
+          {g.title.trim() ? (
+            <p className="pl-0.5 text-[11px] font-extrabold uppercase tracking-wide text-white/88">
+              {g.emoji ? <span className="mr-1.5 font-normal normal-case tracking-normal">{g.emoji}</span> : null}
+              {g.title}
+            </p>
+          ) : null}
+          {g.tiers.map((c) => (
+            <label key={c.id} className={rowClass}>
+              <input
+                type="radio"
+                className={radioClass}
+                name={radioName}
+                value={c.id}
+                checked={selectedId === c.id}
+                onChange={() => setSelectedId(c.id)}
+              />
+              <span className="select-none text-sm text-white/50" aria-hidden>
+                ▫️
+              </span>
+              <span className="rounded-md border border-white/10 bg-white/[0.07] px-2 py-0.5 font-mono text-[11px] font-semibold tabular-nums text-white/90">
+                {catalogTierRowCaption(c)}
+              </span>
+              <span className="text-sm text-white/35" aria-hidden>
+                →
+              </span>
+              <span className="min-w-0 flex-1 text-right text-base font-extrabold text-white">{formatPlanPrice(c.pricePen)}</span>
+            </label>
+          ))}
+        </div>
+      ))}
+    </fieldset>
+  );
+}
+
+function CatalogSpecValue({ label, value }: { label: string; value: string }) {
+  const pill = label === "Dispositivos";
+  if (pill) {
+    return (
+      <dd>
+        <span className="inline-flex rounded-md border border-white/10 bg-white/[0.08] px-2 py-0.5 font-mono text-xs font-semibold tracking-tight text-white/95">
+          {value}
+        </span>
+      </dd>
+    );
+  }
+  return <dd className="text-white/75">{value}</dd>;
+}
+
 function PlanOfferCardStandard({ plan: p, buildCtaTo, ctaLabel, catalogChrome }: Props) {
-  const { choices, selectedId, setSelectedId, selected, showPicker, ctaHref } = usePlanPurchaseSelection(p, buildCtaTo);
+  const { selectedId, setSelectedId, selected, showPicker, ctaHref } = usePlanPurchaseSelection(p, buildCtaTo);
   const title = planDisplayTitle(p);
   const specs = collectSpecs(p);
   const rawImg = p.promoImageUrl?.trim() ?? "";
@@ -111,8 +253,95 @@ function PlanOfferCardStandard({ plan: p, buildCtaTo, ctaLabel, catalogChrome }:
   const extra = p.extraContent?.trim();
   const imageBlock: ReactNode = rawImg ? <PlanCardPromoImage key={rawImg} raw={rawImg} title={title} /> : null;
   const hasRich = Boolean(rawImg) || specs.length > 0 || stock || warn || extra;
-  /** Catálogo público: menos cromo de “app”, más parecido al anuncio del chat. */
+  /** Catálogo público: tarjetas en cuadrícula, estilo anuncio vertical. */
   const adLike = Boolean(catalogChrome);
+
+  if (adLike) {
+    return (
+      <article className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-white/12 bg-[#1c1c21] shadow-lg shadow-black/35 transition hover:border-white/22 hover:shadow-xl">
+        {rawImg ? (
+          <PlanCardPromoImage key={rawImg} catalogChrome raw={rawImg} title={title} />
+        ) : (
+          <div className="relative flex aspect-[16/10] max-h-[220px] shrink-0 items-center justify-center overflow-hidden rounded-t-2xl bg-mimi-black sm:max-h-[240px]">
+            <MimiPlayLogo variant="icon" to={false} heightClass="h-16 w-16 sm:h-20 sm:w-20" className="opacity-80" />
+          </div>
+        )}
+
+        <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
+          <div>
+            <h3 className="text-lg font-extrabold leading-tight tracking-tight text-white">{title}</h3>
+            <p className="mt-1 text-[11px] text-white/40">
+              {p.platformName}
+              {showPicker ? " · Varias vigencias y precios" : ` · ${p.durationDays} días`}
+              {p.planVariantKey ? ` · ${p.planVariantKey}` : ""}
+            </p>
+          </div>
+
+          {specs.length > 0 ? (
+            <dl className="space-y-1.5 text-sm">
+              {specs.map((row) => (
+                <div key={row.label} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                  <dt className="shrink-0 font-bold text-white/90">{row.label}:</dt>
+                  <CatalogSpecValue label={row.label} value={row.value} />
+                </div>
+              ))}
+            </dl>
+          ) : null}
+
+          {showPicker ? (
+            <CatalogPurchaseTierPicker
+              planId={p.planId}
+              groups={p.purchaseTierCatalog.groups}
+              selectedId={selectedId}
+              setSelectedId={setSelectedId}
+              variant="standard"
+            />
+          ) : (
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-mimi-black/35 px-3 py-2.5">
+              <span className="rounded-md border border-white/10 bg-white/[0.07] px-2 py-0.5 font-mono text-[11px] font-semibold tabular-nums text-white/90">
+                {selected?.durationDays ?? p.durationDays} días
+              </span>
+              <span className="text-sm text-white/35">→</span>
+              <span className="text-base font-extrabold text-white">{formatPlanPrice(selected?.pricePen ?? p.pricePen)}</span>
+            </div>
+          )}
+
+          {stock ? (
+            <p className="inline-flex w-fit rounded-lg border border-amber-400/35 bg-amber-500/10 px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide text-amber-100">
+              {stock}
+            </p>
+          ) : null}
+
+          {warn ? (
+            <aside className="rounded-lg border border-white/12 bg-mimi-black/55 px-2.5 py-2 text-[11px] leading-relaxed text-amber-100/95">
+              <span className="font-bold text-amber-200">Aviso: </span>
+              {warn}
+            </aside>
+          ) : null}
+
+          {extra ? (
+            <div className="text-xs leading-relaxed text-white/82 whitespace-pre-wrap [word-break:break-word]">{extra}</div>
+          ) : null}
+
+          <div className="mt-auto border-t border-white/10 pt-4">
+            <p className="text-center text-2xl font-extrabold tabular-nums tracking-tight text-white">
+              {formatPlanPrice(selected?.pricePen ?? p.pricePen)}
+            </p>
+            <p className="mt-0.5 text-center text-[10px] font-semibold uppercase leading-tight text-white/45">
+              por {selected?.durationDays ?? p.durationDays} días · botón de pedido
+            </p>
+            <MimiButton to={ctaHref} variant="primary" className="mt-3 w-full !py-2.5 !text-sm !font-extrabold">
+              {ctaLabel}
+            </MimiButton>
+          </div>
+
+          <p className="text-center text-[10px] leading-snug text-white/30">
+            Precio según la opción marcada arriba. Entrega sujeta a validación de pago.
+          </p>
+        </div>
+      </article>
+    );
+  }
 
   return (
     <article className="flex flex-col overflow-hidden rounded-mimi border border-white/10 bg-mimi-elevated shadow-md transition hover:border-white/20 hover:shadow-lg">
@@ -170,27 +399,37 @@ function PlanOfferCardStandard({ plan: p, buildCtaTo, ctaLabel, catalogChrome }:
           {showPicker ? (
             <fieldset className="rounded-mimi border border-white/10 bg-mimi-black/35 p-3">
               <legend className="px-1 text-[10px] font-extrabold uppercase tracking-wide text-white/65">Elige qué compras</legend>
-              <div className="mt-2 space-y-2">
-                {choices.map((c) => (
-                  <label
-                    key={c.id}
-                    className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-white/10 px-2.5 py-2 hover:bg-white/5 has-[:checked]:border-amber-400/50 has-[:checked]:bg-amber-500/10"
-                  >
-                    <input
-                      type="radio"
-                      className="mt-1"
-                      name={`purchase-${p.planId}`}
-                      value={c.id}
-                      checked={selectedId === c.id}
-                      onChange={() => setSelectedId(c.id)}
-                    />
-                    <span className="min-w-0 text-sm leading-snug">
-                      <span className="font-bold text-white">{c.label}</span>
-                      <span className="mt-0.5 block text-xs text-white/60">
-                        {formatPlanPrice(c.pricePen)} · {c.durationDays} días
-                      </span>
-                    </span>
-                  </label>
+              <div className="mt-2 space-y-4">
+                {p.purchaseTierCatalog.groups.map((g) => (
+                  <div key={g.id} className="space-y-2">
+                    {g.title.trim() ? (
+                      <p className="text-[10px] font-extrabold uppercase tracking-wide text-white/70">
+                        {g.emoji ? <span className="mr-1 font-normal normal-case">{g.emoji}</span> : null}
+                        {g.title}
+                      </p>
+                    ) : null}
+                    {g.tiers.map((c) => (
+                      <label
+                        key={c.id}
+                        className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-white/10 px-2.5 py-2 hover:bg-white/5 has-[:checked]:border-amber-400/50 has-[:checked]:bg-amber-500/10"
+                      >
+                        <input
+                          type="radio"
+                          className="mt-1"
+                          name={`purchase-${p.planId}`}
+                          value={c.id}
+                          checked={selectedId === c.id}
+                          onChange={() => setSelectedId(c.id)}
+                        />
+                        <span className="min-w-0 text-sm leading-snug">
+                          <span className="font-bold text-white">{catalogTierRowCaption(c)}</span>
+                          <span className="mt-0.5 block text-xs text-white/60">
+                            {formatPlanPrice(c.pricePen)} · {c.durationDays} días
+                          </span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
                 ))}
               </div>
             </fieldset>
@@ -273,7 +512,7 @@ function PlanOfferCardStandard({ plan: p, buildCtaTo, ctaLabel, catalogChrome }:
 }
 
 function PlanOfferCardEvent({ plan: p, buildCtaTo, ctaLabel, catalogChrome }: Props) {
-  const { choices, selectedId, setSelectedId, selected, showPicker, ctaHref } = usePlanPurchaseSelection(p, buildCtaTo);
+  const { selectedId, setSelectedId, selected, showPicker, ctaHref } = usePlanPurchaseSelection(p, buildCtaTo);
   const title = planDisplayTitle(p);
   const specs = collectSpecs(p);
   const rawImg = p.promoImageUrl?.trim() ?? "";
@@ -284,6 +523,102 @@ function PlanOfferCardEvent({ plan: p, buildCtaTo, ctaLabel, catalogChrome }: Pr
     <PlanCardPromoImage key={rawImg} raw={rawImg} title={title} maxClass="max-h-72 sm:max-h-96" />
   ) : null;
   const adLike = Boolean(catalogChrome);
+
+  if (adLike) {
+    return (
+      <article className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-orange-400/45 bg-[#1c1c21] shadow-lg shadow-orange-950/30 ring-1 ring-orange-500/20 transition hover:border-orange-400/60 hover:ring-orange-400/30">
+        {rawImg ? (
+          <PlanCardPromoImage key={rawImg} catalogChrome raw={rawImg} title={title} />
+        ) : (
+          <div className="relative flex aspect-[16/10] max-h-[220px] shrink-0 items-center justify-center overflow-hidden rounded-t-2xl bg-mimi-black sm:max-h-[240px]">
+            <MimiPlayLogo variant="icon" to={false} heightClass="h-16 w-16 sm:h-20 sm:w-20" className="opacity-80" />
+          </div>
+        )}
+
+        <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
+          <span className="w-fit rounded-full border border-orange-400/45 bg-orange-500/12 px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-orange-100">
+            Evento / promoción
+          </span>
+
+          <div>
+            <h3 className="text-lg font-black leading-tight tracking-tight text-white">{title}</h3>
+            <p className="mt-1 text-[11px] text-white/45">
+              {p.platformName}
+              {showPicker ? " · Elige la opción que pagarás" : ` · ${p.durationDays} días`}
+            </p>
+          </div>
+
+          {showPicker ? (
+            <CatalogPurchaseTierPicker
+              planId={p.planId}
+              groups={p.purchaseTierCatalog.groups}
+              selectedId={selectedId}
+              setSelectedId={setSelectedId}
+              variant="event"
+            />
+          ) : (
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-orange-400/20 bg-mimi-black/40 px-3 py-2.5">
+              <span className="rounded-md border border-white/10 bg-white/[0.07] px-2 py-0.5 font-mono text-[11px] font-semibold tabular-nums text-white/90">
+                {selected?.durationDays ?? p.durationDays} días
+              </span>
+              <span className="text-sm text-white/35">→</span>
+              <span className="text-base font-extrabold text-white">{formatPlanPrice(selected?.pricePen ?? p.pricePen)}</span>
+            </div>
+          )}
+
+          {warn ? (
+            <aside className="rounded-lg border border-amber-400/35 bg-amber-950/30 px-2.5 py-2 text-[11px] font-medium leading-relaxed text-amber-50 whitespace-pre-wrap">
+              {warn}
+            </aside>
+          ) : null}
+
+          {stock ? (
+            <p className="inline-flex w-fit rounded-lg border border-orange-400/35 bg-orange-500/10 px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide text-orange-50">
+              {stock}
+            </p>
+          ) : null}
+
+          {extra ? (
+            <div className="text-xs leading-relaxed text-white/88 whitespace-pre-wrap [word-break:break-word] sm:text-[13px]">{extra}</div>
+          ) : (
+            <p className="text-[11px] text-white/35">
+              En admin, <strong className="text-white/60">Editar</strong> el anuncio para añadir el cuerpo del evento (texto largo con opciones informativas).
+            </p>
+          )}
+
+          {specs.length > 0 ? (
+            <details className="rounded-lg border border-white/10 bg-mimi-black/35 text-xs text-white/75">
+              <summary className="cursor-pointer px-2.5 py-2 font-bold text-white/85 hover:bg-white/[0.04]">Detalles del acceso</summary>
+              <dl className="space-y-1 border-t border-white/10 px-2.5 py-2">
+                {specs.map((row) => (
+                  <div key={row.label} className="flex flex-wrap gap-x-2">
+                    <dt className="font-bold text-white/70">{row.label}:</dt>
+                    <CatalogSpecValue label={row.label} value={row.value} />
+                  </div>
+                ))}
+              </dl>
+            </details>
+          ) : null}
+
+          <div className="mt-auto border-t border-orange-500/25 pt-4">
+            <p className="text-center text-2xl font-black tabular-nums tracking-tight text-white">
+              {formatPlanPrice(selected?.pricePen ?? p.pricePen)}
+            </p>
+            <p className="mt-0.5 text-center text-[10px] font-bold uppercase leading-tight text-orange-100/55">
+              Opción seleccionada · {selected?.durationDays ?? p.durationDays} días
+            </p>
+            <MimiButton to={ctaHref} variant="primary" className="mt-3 w-full !py-2.5 !text-sm !font-extrabold">
+              {ctaLabel}
+            </MimiButton>
+          </div>
+
+          <p className="text-center text-[10px] leading-snug text-white/30">
+            Otras cifras en el texto suelen ser informativas. Compra gestionada por MimiPlay.
+          </p>
+        </div>
+      </article>
+    );
+  }
 
   return (
     <article className="flex flex-col overflow-hidden rounded-mimi border border-orange-400/35 bg-mimi-elevated shadow-lg shadow-orange-950/20 ring-1 ring-orange-500/15 transition hover:border-orange-400/50 hover:ring-orange-400/25">
@@ -329,27 +664,37 @@ function PlanOfferCardEvent({ plan: p, buildCtaTo, ctaLabel, catalogChrome }: Pr
           {showPicker ? (
             <fieldset className="rounded-mimi border border-orange-400/25 bg-mimi-black/40 p-3">
               <legend className="px-1 text-[10px] font-extrabold uppercase tracking-wide text-orange-100/80">Elige qué compras</legend>
-              <div className="mt-2 space-y-2">
-                {choices.map((c) => (
-                  <label
-                    key={c.id}
-                    className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-white/10 px-2.5 py-2 hover:bg-white/5 has-[:checked]:border-orange-400/55 has-[:checked]:bg-orange-500/15"
-                  >
-                    <input
-                      type="radio"
-                      className="mt-1"
-                      name={`purchase-event-${p.planId}`}
-                      value={c.id}
-                      checked={selectedId === c.id}
-                      onChange={() => setSelectedId(c.id)}
-                    />
-                    <span className="min-w-0 text-sm leading-snug">
-                      <span className="font-bold text-white">{c.label}</span>
-                      <span className="mt-0.5 block text-xs text-white/65">
-                        {formatPlanPrice(c.pricePen)} · {c.durationDays} días
-                      </span>
-                    </span>
-                  </label>
+              <div className="mt-2 space-y-4">
+                {p.purchaseTierCatalog.groups.map((g) => (
+                  <div key={g.id} className="space-y-2">
+                    {g.title.trim() ? (
+                      <p className="text-[10px] font-extrabold uppercase tracking-wide text-orange-100/75">
+                        {g.emoji ? <span className="mr-1 font-normal normal-case">{g.emoji}</span> : null}
+                        {g.title}
+                      </p>
+                    ) : null}
+                    {g.tiers.map((c) => (
+                      <label
+                        key={c.id}
+                        className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-white/10 px-2.5 py-2 hover:bg-white/5 has-[:checked]:border-orange-400/55 has-[:checked]:bg-orange-500/15"
+                      >
+                        <input
+                          type="radio"
+                          className="mt-1"
+                          name={`purchase-event-${p.planId}`}
+                          value={c.id}
+                          checked={selectedId === c.id}
+                          onChange={() => setSelectedId(c.id)}
+                        />
+                        <span className="min-w-0 text-sm leading-snug">
+                          <span className="font-bold text-white">{catalogTierRowCaption(c)}</span>
+                          <span className="mt-0.5 block text-xs text-white/65">
+                            {formatPlanPrice(c.pricePen)} · {c.durationDays} días
+                          </span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
                 ))}
               </div>
             </fieldset>
@@ -382,7 +727,7 @@ function PlanOfferCardEvent({ plan: p, buildCtaTo, ctaLabel, catalogChrome }: Pr
             )
           ) : (
             <p className="text-sm text-mimi-muted">
-              En admin, <strong className="text-white/80">Presentación</strong>: tipo Evento y cuerpo del anuncio (varias plataformas en el texto).
+              En admin, <strong className="text-white/80">Editar</strong> el anuncio: tipo Evento y cuerpo del anuncio (varias plataformas en el texto).
             </p>
           )}
 
