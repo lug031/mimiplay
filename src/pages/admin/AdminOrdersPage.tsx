@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { getUrl } from "aws-amplify/storage";
-import { dataClient } from "@/lib/dataClient";
-import { orderStatusLabel } from "@/lib/orderStatus";
+import { snackbarVariantForMessage, useAdminSnackbar } from "@/components/admin/AdminSnackbar";
+import { MimiLoadingState } from "@/components/ui/MimiLoadingState";
+import { adminDataClient } from "@/lib/dataClient";
+import { orderStatusLabel, paymentMethodLabel } from "@/lib/orderStatus";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 
 type OrderRow = {
@@ -39,11 +41,10 @@ const STATUS_OPTIONS = [
 ] as const;
 
 export function AdminOrdersPage({ queueOnly }: Props) {
+  const { showSnackbar } = useAdminSnackbar();
   const [filter, setFilter] = useState<string>(queueOnly ? "PAYMENT_SUBMITTED" : "ALL");
   const [rows, setRows] = useState<OrderRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [msg, setMsg] = useState<string | null>(null);
 
   const [openId, setOpenId] = useState<string | null>(null);
   const [detail, setDetail] = useState<{
@@ -69,12 +70,11 @@ export function AdminOrdersPage({ queueOnly }: Props) {
 
   async function refresh() {
     setLoading(true);
-    setError(null);
     try {
       const [or, pr, plr] = await Promise.all([
-        dataClient.models.CustomerOrder.list(),
-        dataClient.models.ServicePlan.list(),
-        dataClient.models.Platform.list(),
+        adminDataClient.models.CustomerOrder.list(),
+        adminDataClient.models.ServicePlan.list(),
+        adminDataClient.models.Platform.list(),
       ]);
       const pmap = new Map((plr.data ?? []).filter((x) => x.id).map((x) => [x.id, x]));
       const planMap = new Map((pr.data ?? []).filter((x) => x.id).map((x) => [x.id, x]));
@@ -98,7 +98,7 @@ export function AdminOrdersPage({ queueOnly }: Props) {
       enriched.sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
       setRows(enriched);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Error al cargar pedidos");
+      showSnackbar(e instanceof Error ? e.message : "Error al cargar pedidos", "error");
     } finally {
       setLoading(false);
     }
@@ -111,7 +111,6 @@ export function AdminOrdersPage({ queueOnly }: Props) {
   async function openDetail(id: string) {
     setOpenId(id);
     setDetail(null);
-    setMsg(null);
     setDetailLoading(true);
     setSelectedAccountId("");
     setCe("");
@@ -121,7 +120,7 @@ export function AdminOrdersPage({ queueOnly }: Props) {
     setRenewLocal("");
     setAvailAccounts([]);
     try {
-      const res = await dataClient.models.CustomerOrder.get({ id });
+      const res = await adminDataClient.models.CustomerOrder.get({ id });
       const o = res.data;
       let proofUrl: string | null = null;
       if (o?.paymentProofStorageKey) {
@@ -135,7 +134,7 @@ export function AdminOrdersPage({ queueOnly }: Props) {
       setDetail({ order: o as OrderDetail, proofUrl });
 
       if (o?.servicePlanID) {
-        const pr = await dataClient.models.ServicePlan.get({ id: o.servicePlanID });
+        const pr = await adminDataClient.models.ServicePlan.get({ id: o.servicePlanID });
         const plan = pr.data;
         if (plan?.platformID) {
           let accounts: {
@@ -147,7 +146,7 @@ export function AdminOrdersPage({ queueOnly }: Props) {
             pin?: string | null;
           }[] = [];
           try {
-            const filtered = await dataClient.models.PlatformAccount.list({
+            const filtered = await adminDataClient.models.PlatformAccount.list({
               filter: {
                 and: [{ platformID: { eq: plan.platformID } }, { status: { eq: "AVAILABLE" } }],
               },
@@ -157,7 +156,7 @@ export function AdminOrdersPage({ queueOnly }: Props) {
             accounts = [];
           }
           if (!accounts.length) {
-            const all = await dataClient.models.PlatformAccount.list();
+            const all = await adminDataClient.models.PlatformAccount.list();
             accounts = (all.data ?? []).filter(
               (a) => a.platformID === plan.platformID && a.status === "AVAILABLE",
             );
@@ -175,7 +174,7 @@ export function AdminOrdersPage({ queueOnly }: Props) {
         }
       }
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : "Error al abrir pedido");
+      showSnackbar(e instanceof Error ? e.message : "Error al abrir pedido", "error");
     } finally {
       setDetailLoading(false);
     }
@@ -188,17 +187,17 @@ export function AdminOrdersPage({ queueOnly }: Props) {
 
   async function confirmPayment() {
     if (!openId) return;
-    setMsg(null);
-    const { errors } = await dataClient.models.CustomerOrder.update({
+    const { errors } = await adminDataClient.models.CustomerOrder.update({
       id: openId,
       status: "PAYMENT_CONFIRMED",
       paymentConfirmedAt: new Date().toISOString(),
     });
     if (errors?.length) {
-      setMsg(errors.map((x) => x.message).join("; "));
+      const t = errors.map((x) => x.message).join("; ");
+      showSnackbar(t, snackbarVariantForMessage(t));
       return;
     }
-    setMsg("Pago confirmado.");
+    showSnackbar("Pago confirmado.", "success");
     await refresh();
     closeDetail();
   }
@@ -206,26 +205,26 @@ export function AdminOrdersPage({ queueOnly }: Props) {
   async function cancelOrder() {
     if (!openId) return;
     if (!window.confirm("¿Cancelar este pedido?")) return;
-    setMsg(null);
-    const { errors } = await dataClient.models.CustomerOrder.update({
+    const { errors } = await adminDataClient.models.CustomerOrder.update({
       id: openId,
       status: "CANCELLED",
     });
     if (errors?.length) {
-      setMsg(errors.map((x) => x.message).join("; "));
+      const t = errors.map((x) => x.message).join("; ");
+      showSnackbar(t, snackbarVariantForMessage(t));
       return;
     }
+    showSnackbar("Pedido cancelado.", "success");
     await refresh();
     closeDetail();
   }
 
   async function fulfillOrder() {
     if (!openId || !detail?.order) return;
-    setMsg(null);
     const email = ce.trim();
     const password = cp.trim();
     if (!email || !password) {
-      setMsg("Correo y contraseña son obligatorios para entregar.");
+      showSnackbar("Correo y contraseña son obligatorios para entregar.", "warning");
       return;
     }
     let renewIso: string;
@@ -233,7 +232,7 @@ export function AdminOrdersPage({ queueOnly }: Props) {
       if (!renewLocal) throw new Error("Indica fecha/hora de renovación o vigencia.");
       renewIso = new Date(renewLocal).toISOString();
     } catch {
-      setMsg("Fecha de renovación no válida.");
+      showSnackbar("Fecha de renovación no válida.", "warning");
       return;
     }
 
@@ -241,7 +240,7 @@ export function AdminOrdersPage({ queueOnly }: Props) {
 
     try {
       if (selectedAccountId) {
-        const { errors: e1 } = await dataClient.models.AccountAssignment.create({
+        const { errors: e1 } = await adminDataClient.models.AccountAssignment.create({
           orderID: openId,
           platformAccountID: selectedAccountId,
           source: "MANUAL",
@@ -250,7 +249,7 @@ export function AdminOrdersPage({ queueOnly }: Props) {
         });
         if (e1?.length) throw new Error(e1.map((x) => x.message).join("; "));
 
-        const { errors: e2 } = await dataClient.models.PlatformAccount.update({
+        const { errors: e2 } = await adminDataClient.models.PlatformAccount.update({
           id: selectedAccountId,
           status: "ASSIGNED",
           reservedOrderID: openId,
@@ -258,7 +257,7 @@ export function AdminOrdersPage({ queueOnly }: Props) {
         if (e2?.length) throw new Error(e2.map((x) => x.message).join("; "));
       }
 
-      const { errors: e3 } = await dataClient.models.CustomerOrder.update({
+      const { errors: e3 } = await adminDataClient.models.CustomerOrder.update({
         id: openId,
         status: "FULFILLED",
         fulfilledAt: now,
@@ -271,11 +270,11 @@ export function AdminOrdersPage({ queueOnly }: Props) {
       });
       if (e3?.length) throw new Error(e3.map((x) => x.message).join("; "));
 
-      setMsg("Pedido entregado.");
+      showSnackbar("Pedido entregado.", "success");
       await refresh();
       closeDetail();
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : "Error al entregar");
+      showSnackbar(e instanceof Error ? e.message : "Error al entregar", "error");
     }
   }
 
@@ -295,17 +294,17 @@ export function AdminOrdersPage({ queueOnly }: Props) {
 
   return (
     <div>
-      <h1 className="text-2xl font-extrabold text-tcr-dark">{queueOnly ? "Cola de revisión" : "Pedidos"}</h1>
-      <p className="mt-2 text-sm text-tcr-text-muted">
+      <h1 className="text-2xl font-extrabold text-neutral-900">{queueOnly ? "Cola de revisión" : "Pedidos"}</h1>
+      <p className="mt-2 text-sm text-neutral-600">
         {queueOnly
-          ? "Pedidos con comprobante enviado pendientes de confirmar pago."
-          : "Todos los pedidos. Abre uno para ver comprobante, confirmar pago o entregar credenciales."}
+          ? "Bandeja de compras con comprobante recibido: validación de pago antes de liberar acceso."
+          : "Vista global de ventas: comprobantes, confirmación de ingresos y cierre operativo con entrega de credenciales."}
       </p>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
-        <label className="text-sm font-bold text-tcr-dark">Filtrar</label>
+        <label className="text-sm font-bold text-neutral-900">Filtrar</label>
         <select
-          className="rounded-lg border border-tcr-border px-3 py-2 text-sm"
+          className="rounded-lg border border-neutral-200 px-3 py-2 text-sm"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         >
@@ -318,24 +317,18 @@ export function AdminOrdersPage({ queueOnly }: Props) {
         </select>
         <button
           type="button"
-          className="rounded-full border border-tcr-border bg-white px-4 py-2 text-sm font-bold hover:border-tcr-teal"
+          className="rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm font-bold hover:border-neutral-400"
           onClick={() => void refresh()}
         >
           Actualizar
         </button>
       </div>
 
-      {loading && <p className="mt-6 text-tcr-text-muted">Cargando…</p>}
-      {error && (
-        <div className="mt-6 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>
-      )}
-      {msg && !openId && (
-        <div className="mt-6 rounded-lg border border-tcr-border bg-white px-3 py-2 text-sm">{msg}</div>
-      )}
+      {loading && <MimiLoadingState tone="light" layout="inline" className="mt-6" />}
 
-      <div className="mt-8 overflow-x-auto rounded-xl border border-tcr-border bg-white">
+      <div className="mt-8 overflow-x-auto rounded-xl border border-neutral-200 bg-white">
         <table className="min-w-full text-left text-sm">
-          <thead className="border-b border-tcr-border bg-tcr-bg">
+          <thead className="border-b border-neutral-200 bg-neutral-100">
             <tr>
               <th className="px-3 py-2 font-bold">Pedido</th>
               <th className="px-3 py-2 font-bold">Plan</th>
@@ -346,12 +339,12 @@ export function AdminOrdersPage({ queueOnly }: Props) {
           </thead>
           <tbody>
             {filteredRows.map((r) => (
-              <tr key={r.id} className="border-b border-tcr-border last:border-0">
+              <tr key={r.id} className="border-b border-neutral-200 last:border-0">
                 <td className="px-3 py-2 font-mono text-xs">{r.id.slice(0, 8)}…</td>
                 <td className="px-3 py-2">{r.planLabel}</td>
-                <td className="px-3 py-2 text-tcr-text-muted">
+                <td className="px-3 py-2 text-neutral-600">
                   {r.payerFullName || r.owner || "—"}
-                  {r.paymentMethod ? ` · ${r.paymentMethod}` : ""}
+                  {r.paymentMethod ? ` · ${paymentMethodLabel(r.paymentMethod)}` : ""}
                 </td>
                 <td className="px-3 py-2">
                   <StatusBadge tone="neutral">{orderStatusLabel(r.status)}</StatusBadge>
@@ -359,7 +352,7 @@ export function AdminOrdersPage({ queueOnly }: Props) {
                 <td className="px-3 py-2 text-right">
                   <button
                     type="button"
-                    className="font-bold text-tcr-teal hover:underline"
+                    className="font-bold text-neutral-900 hover:underline"
                     onClick={() => void openDetail(r.id)}
                   >
                     Gestionar
@@ -372,17 +365,16 @@ export function AdminOrdersPage({ queueOnly }: Props) {
       </div>
 
       {openId && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-tcr-dark/40 p-4 sm:items-center">
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-tcr-border bg-white p-6 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-mimi-black/50 p-4 sm:items-center">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-neutral-200 bg-white p-6 shadow-xl">
             <div className="flex items-start justify-between gap-4">
               <h2 className="text-lg font-extrabold">Pedido {openId.slice(0, 8)}…</h2>
-              <button type="button" className="text-sm font-bold text-tcr-text-muted hover:text-tcr-dark" onClick={closeDetail}>
+              <button type="button" className="text-sm font-bold text-neutral-600 hover:text-neutral-900" onClick={closeDetail}>
                 Cerrar
               </button>
             </div>
 
-            {detailLoading && <p className="mt-4 text-sm text-tcr-text-muted">Cargando…</p>}
-            {msg && openId && <div className="mt-4 rounded-lg bg-tcr-bg px-3 py-2 text-sm">{msg}</div>}
+            {detailLoading && <MimiLoadingState tone="light" layout="inline" className="mt-4 py-6" />}
 
             {!detailLoading && detail?.order && (
               <div className="mt-4 space-y-4 text-sm">
@@ -402,7 +394,7 @@ export function AdminOrdersPage({ queueOnly }: Props) {
                 {detail.proofUrl && (
                   <div>
                     <p className="font-bold">Comprobante</p>
-                    <a href={detail.proofUrl} target="_blank" rel="noreferrer" className="text-tcr-teal hover:underline">
+                    <a href={detail.proofUrl} target="_blank" rel="noreferrer" className="text-neutral-900 hover:underline">
                       Abrir archivo
                     </a>
                     {detail.proofUrl.match(/\.(png|jpe?g|gif|webp)$/i) && (
@@ -412,10 +404,10 @@ export function AdminOrdersPage({ queueOnly }: Props) {
                 )}
 
                 {st === "PAYMENT_SUBMITTED" && (
-                  <div className="flex flex-wrap gap-2 border-t border-tcr-border pt-4">
+                  <div className="flex flex-wrap gap-2 border-t border-neutral-200 pt-4">
                     <button
                       type="button"
-                      className="rounded-full bg-tcr-teal px-4 py-2 text-xs font-bold text-white hover:bg-[#007a8f]"
+                      className="rounded-full bg-mimi-black px-4 py-2 text-xs font-bold text-white hover:bg-neutral-800"
                       onClick={() => void confirmPayment()}
                     >
                       Confirmar pago
@@ -431,13 +423,13 @@ export function AdminOrdersPage({ queueOnly }: Props) {
                 )}
 
                 {st === "PAYMENT_CONFIRMED" && (
-                  <div className="space-y-3 border-t border-tcr-border pt-4">
-                    <p className="font-bold text-tcr-dark">Entregar credenciales</p>
+                  <div className="space-y-3 border-t border-neutral-200 pt-4">
+                    <p className="font-bold text-neutral-900">Entregar credenciales</p>
                     {availAccounts.length > 0 && (
                       <div>
-                        <label className="block text-xs font-bold text-tcr-text-muted">Cuenta del inventario (opcional)</label>
+                        <label className="block text-xs font-bold text-neutral-600">Cuenta del inventario (opcional)</label>
                         <select
-                          className="mt-1 w-full rounded-lg border border-tcr-border px-3 py-2 text-sm"
+                          className="mt-1 w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
                           value={selectedAccountId}
                           onChange={(e) => onPickAccount(e.target.value)}
                         >
@@ -451,34 +443,34 @@ export function AdminOrdersPage({ queueOnly }: Props) {
                       </div>
                     )}
                     <input
-                      className="w-full rounded-lg border border-tcr-border px-3 py-2"
+                      className="w-full rounded-lg border border-neutral-200 px-3 py-2"
                       placeholder="Correo"
                       value={ce}
                       onChange={(e) => setCe(e.target.value)}
                     />
                     <input
-                      className="w-full rounded-lg border border-tcr-border px-3 py-2"
+                      className="w-full rounded-lg border border-neutral-200 px-3 py-2"
                       placeholder="Contraseña"
                       value={cp}
                       onChange={(e) => setCp(e.target.value)}
                     />
                     <input
-                      className="w-full rounded-lg border border-tcr-border px-3 py-2"
+                      className="w-full rounded-lg border border-neutral-200 px-3 py-2"
                       placeholder="Perfil (opcional)"
                       value={cprof}
                       onChange={(e) => setCprof(e.target.value)}
                     />
                     <input
-                      className="w-full rounded-lg border border-tcr-border px-3 py-2"
+                      className="w-full rounded-lg border border-neutral-200 px-3 py-2"
                       placeholder="PIN (opcional)"
                       value={cpin}
                       onChange={(e) => setCpin(e.target.value)}
                     />
                     <div>
-                      <label className="block text-xs font-bold text-tcr-text-muted">Fecha/hora renovación o fin de vigencia</label>
+                      <label className="block text-xs font-bold text-neutral-600">Fecha/hora renovación o fin de vigencia</label>
                       <input
                         type="datetime-local"
-                        className="mt-1 w-full rounded-lg border border-tcr-border px-3 py-2"
+                        className="mt-1 w-full rounded-lg border border-neutral-200 px-3 py-2"
                         value={renewLocal}
                         onChange={(e) => setRenewLocal(e.target.value)}
                       />

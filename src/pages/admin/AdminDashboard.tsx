@@ -4,41 +4,42 @@ const cards = [
   {
     to: "/admin/catalogo",
     title: "Catálogo",
-    desc: "Plataformas (Netflix, Prime…) y planes con precio y duración.",
+    desc: "Define plataformas y planes comerciales (precio, vigencia, categoría) visibles para la venta.",
   },
   {
     to: "/admin/cola",
     title: "Cola",
-    desc: "Pedidos con comprobante enviado: confirmar pago o cancelar.",
+    desc: "Pedidos con comprobante cargado: revisión de pago y decisión de avance o cancelación.",
   },
   {
     to: "/admin/pedidos",
     title: "Todos los pedidos",
-    desc: "Filtrar por estado y entregar credenciales tras pago confirmado.",
+    desc: "Pipeline completo de ventas: filtra por estado, confirma pagos y registra la entrega de accesos.",
   },
   {
     to: "/admin/inventario",
     title: "Inventario",
-    desc: "Cuentas disponibles para asignar manualmente al entregar.",
+    desc: "Stock de cuentas por plataforma para cubrir pedidos validados y asignaciones manuales.",
   },
 ];
 
 export function AdminDashboard() {
   return (
     <div>
-      <h1 className="text-2xl font-extrabold text-tcr-dark">Panel administrador</h1>
-      <p className="mt-2 text-sm text-tcr-text-muted">
-        Flujo típico: cargar catálogo e inventario → revisar cola → confirmar pago → entregar credenciales al cliente.
+      <h1 className="text-2xl font-extrabold text-slate-900">Panel administrador</h1>
+      <p className="mt-2 max-w-2xl text-sm text-slate-600">
+        Operación comercial de MimiPlay: publicar oferta (catálogo), alimentar stock (inventario), validar pagos (cola)
+        y cerrar ventas con entrega de credenciales al comprador.
       </p>
       <div className="mt-10 grid gap-4 sm:grid-cols-2">
         {cards.map((c) => (
           <Link
             key={c.to}
             to={c.to}
-            className="rounded-2xl border border-tcr-border bg-white p-5 shadow-sm transition hover:border-tcr-teal"
+            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-sky-400 hover:shadow-md"
           >
-            <h2 className="text-lg font-extrabold text-tcr-teal">{c.title}</h2>
-            <p className="mt-2 text-sm text-tcr-text-muted">{c.desc}</p>
+            <h2 className="text-lg font-extrabold text-sky-700">{c.title}</h2>
+            <p className="mt-2 text-sm text-slate-600">{c.desc}</p>
           </Link>
         ))}
       </div>

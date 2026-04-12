@@ -1,162 +1,203 @@
-import { useEffect } from "react";
-import { Link } from "react-router-dom";
+import { MimiPlayLogo } from "@/components/brand/MimiPlayLogo";
+import { MimiButton } from "@/components/ui/MimiButton";
+import { StreamingMarqueeSection } from "@/components/marketplace/StreamingMarqueeSection";
+import { AppFooter } from "@/components/shell/AppFooter";
+import { AppNavbar } from "@/components/shell/AppNavbar";
+import { MimiPlayFloatingChat } from "@/components/support/MimiPlayFloatingChat";
+import { type FormEvent, useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
-function useRevealOnScroll() {
-  useEffect(() => {
-    const els = document.querySelectorAll("[data-reveal]");
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) {
-          if (e.isIntersecting) {
-            e.target.classList.add("reveal-visible");
-            e.target.classList.remove("reveal-hidden");
-          }
-        }
-      },
-      { threshold: 0.12 },
-    );
-    els.forEach((el) => {
-      el.classList.add("reveal-hidden");
-      io.observe(el);
-    });
-    return () => io.disconnect();
-  }, []);
+const CATEGORY_CHIPS: { key: string; label: string; icon: string }[] = [
+  { key: "STREAMING", label: "Streaming", icon: "▶" },
+  { key: "SPORTS", label: "Deportes / TV", icon: "⚽" },
+  { key: "PC_APP", label: "Apps PC", icon: "🖥" },
+  { key: "OTHER", label: "Otros", icon: "✦" },
+  { key: "ALL", label: "Inteligencia artificial", icon: "✨" },
+  { key: "ALL2", label: "Video", icon: "🎬" },
+  { key: "ALL3", label: "Música", icon: "🎵" },
+  { key: "ALL4", label: "Videojuegos", icon: "🎮" },
+];
+
+const FAQ_ITEMS: { q: string; a: string }[] = [
+  {
+    q: "¿Cuánto cuesta el servicio?",
+    a: "Cada plan publica precio y vigencia en días. Pagas el monto del plan contratado; no cobramos registro en la web.",
+  },
+  {
+    q: "¿Qué es MimiPlay?",
+    a: "Es una plataforma comercial para adquirir accesos a cuentas de streaming, apps y servicios digitales asociados: eliges plan, registras el pago con comprobante y recibes las credenciales cuando la compra quede validada, según disponibilidad de stock y las condiciones de cada proveedor externo.",
+  },
+  {
+    q: "¿Puedo cancelar un pedido?",
+    a: "Según la etapa del pedido (antes o después de validar el pago) aplican políticas de cancelación distintas. Revisa el detalle del pedido en tu área de cliente o consulta las condiciones comerciales vigentes.",
+  },
+  {
+    q: "¿Cómo contacto soporte?",
+    a: "Puedes usar los canales de atención que MimiPlay habilite (correo, mensajería o teléfono) además del seguimiento en línea de tu pedido para dudas sobre pago, plazos y entrega.",
+  },
+  {
+    q: "¿Cómo recibo el acceso contratado?",
+    a: "Cuando el pago quede acreditado según el proceso comercial, se asigna un acceso desde inventario y las credenciales quedan disponibles en el detalle del pedido en tu cuenta, salvo incidencias operativas que se comuniquen por el mismo canal.",
+  },
+];
+
+function WaveDivider() {
+  return (
+    <div className="pointer-events-none relative -mb-px h-16 w-full min-w-full max-w-none leading-none sm:h-24" aria-hidden>
+      <svg
+        className="absolute bottom-0 left-0 block h-full w-full min-w-full text-mimi-surface"
+        preserveAspectRatio="none"
+        viewBox="0 0 1440 120"
+      >
+        <path
+          fill="currentColor"
+          d="M0,64 C240,120 480,0 720,56 C960,112 1200,8 1440,48 L1440,120 L0,120 Z"
+        />
+      </svg>
+    </div>
+  );
 }
 
 export function LandingPage() {
-  useRevealOnScroll();
+  const navigate = useNavigate();
+  const [search, setSearch] = useState("");
+  const [faqOpen, setFaqOpen] = useState<number | null>(0);
+
+  useEffect(() => {
+    if (window.location.hash !== "#faq") return;
+    const id = window.requestAnimationFrame(() => {
+      document.getElementById("faq")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, []);
+
+  function onSearchSubmit(e: FormEvent) {
+    e.preventDefault();
+    const q = search.trim();
+    if (q) navigate(`/catalogo?q=${encodeURIComponent(q)}`);
+    else navigate("/catalogo");
+  }
 
   return (
-    <div className="min-h-screen bg-white font-manrope text-tcr-dark">
-      <header className="sticky top-0 z-50 border-b border-tcr-border bg-white/95 backdrop-blur-sm">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-          <a href="#inicio" className="shrink-0 text-lg font-extrabold tracking-tight">
-            Mimi<span className="text-tcr-teal">Play</span>
-          </a>
-          <nav className="hidden items-center gap-1 lg:flex">
-            <a href="#como-funciona" className="rounded-lg px-3 py-2 text-sm font-semibold hover:bg-tcr-bg">
-              Cómo funciona
-            </a>
-            <Link to="/catalogo" className="rounded-lg px-3 py-2 text-sm font-semibold hover:bg-tcr-bg">
-              Catálogo
-            </Link>
-            <a href="#contacto" className="rounded-lg px-3 py-2 text-sm font-semibold hover:bg-tcr-bg">
-              Contacto
-            </a>
-          </nav>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <Link
-              to="/app/inicio"
-              className="hidden items-center gap-1.5 text-sm font-bold hover:text-tcr-teal sm:flex"
-            >
-              Iniciar sesión
-            </Link>
-            <Link
-              to="/app/inicio"
-              className="rounded-full bg-tcr-teal px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-[#007a8f]"
-            >
-              Mi cuenta
-            </Link>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-mimi-black font-manrope text-white">
+      <div className="relative bg-mimi-black text-white">
+        <AppNavbar marketingExtras />
 
-      <main>
-        <section id="inicio" className="relative overflow-hidden pb-16 pt-12 sm:pb-24 sm:pt-16">
-          <div className="hero-pattern absolute inset-0 -z-10 opacity-60" />
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="mx-auto max-w-3xl text-center" data-reveal>
-              <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl">
-                Cuentas de streaming y apps, sin esperas interminables
-              </h1>
-              <p className="mt-6 text-lg text-tcr-text-muted sm:text-xl">
-                Elige plan, paga con comprobante y recibe acceso desde tu panel. Menos mensajes
-                repetidos, más trazabilidad para ti y para MimiPlay.
-              </p>
-              <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-6">
-                <Link
-                  to="/app/inicio"
-                  className="inline-flex items-center gap-2 rounded-full bg-tcr-teal px-8 py-3.5 text-base font-bold text-white shadow-md transition hover:bg-[#007a8f]"
-                >
-                  Entrar al portal
-                </Link>
-                <Link
-                  to="/catalogo"
-                  className="rounded-2xl border border-tcr-border bg-white px-5 py-3 text-sm font-bold shadow-sm hover:border-tcr-teal"
-                >
-                  Ver catálogo y precios
-                </Link>
+        <section id="inicio" className="relative pb-0 pt-10 sm:pt-14 lg:pt-16">
+          <div className="mx-auto max-w-5xl px-4 pb-6 text-center sm:px-6 sm:pb-8 lg:px-8">
+            <h1 className="text-[1.65rem] font-extrabold leading-tight tracking-tight sm:text-4xl md:text-5xl lg:text-[3.25rem]">
+              <span className="text-white/90">Mimi </span>
+              <span className="text-white">PLAY</span>
+            </h1>
+            <p className="mx-auto mt-4 max-w-2xl text-sm text-white/70 sm:text-base">
+              Comercializamos accesos a cuentas para distintas plataformas (streaming, apps y servicios digitales).
+              Consulta planes, formaliza tu pago con comprobante y da seguimiento a tu compra desde tu cuenta.
+            </p>
+
+            <form
+              onSubmit={onSearchSubmit}
+              className="mx-auto mt-10 flex max-w-2xl flex-col gap-2 sm:flex-row sm:items-stretch sm:gap-0"
+            >
+              <div className="relative flex flex-1 items-center rounded-full border border-white/20 bg-white/10 shadow-inner backdrop-blur sm:rounded-r-none sm:border-r-0">
+                <input
+                  type="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Netflix, Disney+, Spotify…"
+                  className="h-12 w-full min-w-0 flex-1 rounded-full bg-transparent px-4 text-sm text-white placeholder:text-white/40 outline-none sm:h-14 sm:rounded-r-none sm:text-base"
+                />
+              </div>
+              <button
+                type="submit"
+                className="h-12 shrink-0 rounded-full border border-white/20 bg-white px-6 text-sm font-extrabold text-mimi-black transition hover:bg-neutral-200 sm:h-14 sm:rounded-l-none sm:rounded-r-full sm:border-l-0"
+              >
+                Buscar
+              </button>
+            </form>
+
+            <div className="mt-8 flex justify-center">
+              <div className="-mx-4 flex max-w-full gap-2 overflow-x-auto px-4 pb-2 scrollbar-thin sm:mx-0 sm:flex-wrap sm:justify-center sm:overflow-visible sm:px-0">
+                {CATEGORY_CHIPS.map((c) => (
+                  <Link
+                    key={c.key}
+                    to={c.key.startsWith("ALL") ? "/catalogo" : `/catalogo`}
+                    className="inline-flex shrink-0 items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-semibold text-white/90 transition hover:border-white/35 hover:bg-white/10 sm:text-sm"
+                  >
+                    <span className="opacity-80">{c.icon}</span>
+                    {c.label}
+                  </Link>
+                ))}
               </div>
             </div>
-          </div>
-        </section>
 
-        <section id="como-funciona" className="border-y border-tcr-border bg-tcr-bg py-16" data-reveal>
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <h2 className="text-center text-2xl font-extrabold sm:text-3xl">Cómo funciona</h2>
-            <div className="mt-12 grid gap-8 sm:grid-cols-3">
-              {[
-                {
-                  t: "1. Eliges servicio",
-                  d: "Streaming, deportes o apps de PC: mismos precios y planes que ya conoces.",
-                },
-                {
-                  t: "2. Pagas y subes comprobante",
-                  d: "Yape, Plin u otros métodos; la plataforma guarda tu boleta vinculada al pedido.",
-                },
-                {
-                  t: "3. Confirmación y credenciales",
-                  d: "El equipo valida, asigna cuenta desde inventario (auto o manual) y ves todo en tu panel.",
-                },
-              ].map((x) => (
-                <div
-                  key={x.t}
-                  className="rounded-2xl border border-tcr-border bg-white p-6 shadow-sm"
-                >
-                  <h3 className="text-lg font-extrabold text-tcr-teal">{x.t}</h3>
-                  <p className="mt-2 text-sm text-tcr-text-muted">{x.d}</p>
-                </div>
-              ))}
+            <div className="mt-10 pb-2">
+              <MimiButton to="/catalogo" variant="primary" className="!px-10 !py-3.5 !text-base sm:!px-14 sm:!py-4 sm:!text-lg">
+                Empieza ahora
+              </MimiButton>
             </div>
           </div>
-        </section>
 
-        <section id="catalogo" className="py-16" data-reveal>
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <h2 className="text-center text-2xl font-extrabold sm:text-3xl">Catálogo en vivo</h2>
-            <p className="mx-auto mt-4 max-w-2xl text-center text-tcr-text-muted">
-              Planes y precios cargados desde la nube. Para comprar necesitas una cuenta en el portal.
-            </p>
-            <div className="mt-8 flex justify-center">
-              <Link
-                to="/catalogo"
-                className="inline-flex rounded-full bg-tcr-teal px-8 py-3 text-sm font-bold text-white hover:bg-[#007a8f]"
-              >
-                Abrir catálogo completo
-              </Link>
+          <WaveDivider />
+        </section>
+      </div>
+
+      <StreamingMarqueeSection />
+
+      {/* ——— CTA + FAQ ——— */}
+      <section className="border-t border-white/10 bg-mimi-black py-14 text-white sm:py-16">
+        <div className="mx-auto flex max-w-6xl flex-col items-center gap-10 px-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <div className="flex shrink-0 justify-center sm:justify-start">
+              <MimiPlayLogo to={false} heightClass="h-24 w-auto sm:h-28" className="max-w-[10rem] sm:max-w-[11rem]" />
             </div>
+          <div className="max-w-xl flex-1 text-center sm:text-left">
+            <h2 className="text-2xl font-extrabold leading-tight sm:text-3xl md:text-4xl">
+              ¿Listo para <span className="text-white">comprar</span>? Abre tu cuenta comercial
+            </h2>
+            <div className="mx-auto mt-2 h-0.5 w-48 rounded-full bg-white/40 sm:mx-0" aria-hidden />
           </div>
-        </section>
-
-        <section id="contacto" className="border-t border-tcr-border bg-tcr-dark py-16 text-white" data-reveal>
-          <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
-            <h2 className="text-2xl font-extrabold">¿Sigues en WhatsApp?</h2>
-            <p className="mt-3 text-sm text-white/80">
-              La web complementa tus canales: Telegram, Discord y grupos siguen para avisos masivos.
+          <div className="max-w-xs text-center sm:text-left">
+            <p className="text-sm text-white/70">
+              Registro sin costo: accede al catálogo de planes, genera pedidos con comprobante de pago y gestiona tus compras de accesos en un solo
+              lugar.
             </p>
-            <Link
-              to="/app/inicio"
-              className="mt-8 inline-flex rounded-full bg-tcr-teal px-8 py-3 text-sm font-bold text-white hover:bg-[#007a8f]"
-            >
-              Ir al portal de cliente
-            </Link>
+            <MimiButton to="/app/acceso/registro" variant="primary" className="mt-5 !inline-flex !gap-2 !px-6 !py-3 !text-sm">
+              → Crea mi cuenta
+            </MimiButton>
           </div>
-        </section>
-      </main>
+        </div>
+      </section>
 
-      <footer className="border-t border-tcr-border py-8 text-center text-xs text-tcr-text-muted">
-        MimiPlay · Panel React + AWS Amplify Gen 2
-      </footer>
+      <section
+        id="faq"
+        className="scroll-mt-20 border-t border-white/10 bg-mimi-surface py-14 sm:scroll-mt-24 sm:py-16"
+      >
+        <div className="mx-auto max-w-3xl px-4 sm:px-6">
+          <h2 className="text-center text-2xl font-extrabold text-white sm:text-3xl">Preguntas más frecuentes</h2>
+          <ul className="mt-10 divide-y divide-white/10 border-y border-white/10">
+            {FAQ_ITEMS.map((item, i) => {
+              const open = faqOpen === i;
+              return (
+                <li key={item.q}>
+                  <button
+                    type="button"
+                    onClick={() => setFaqOpen(open ? null : i)}
+                    className="flex w-full items-center justify-between gap-4 py-5 text-left"
+                    aria-expanded={open}
+                  >
+                    <span className="text-sm font-bold text-white sm:text-base">{item.q}</span>
+                    <span className={`text-xl font-light text-white/70 transition ${open ? "rotate-45" : ""}`}>+</span>
+                  </button>
+                  {open && <p className="pb-5 text-sm leading-relaxed text-white/65">{item.a}</p>}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </section>
+
+      <AppFooter />
+
+      <MimiPlayFloatingChat />
     </div>
   );
 }

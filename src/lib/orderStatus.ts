@@ -36,3 +36,15 @@ export const CATEGORY_LABEL: Record<string, string> = {
   PC_APP: "Apps PC",
   OTHER: "Otros",
 };
+
+const PAYMENT_METHOD_LABEL: Record<string, string> = {
+  YAPE: "Pago móvil (A)",
+  PLIN: "Pago móvil (B)",
+  TRANSFERENCIA: "Transferencia",
+  OTRO: "Otro",
+};
+
+export function paymentMethodLabel(code: string | null | undefined): string {
+  if (!code) return "";
+  return PAYMENT_METHOD_LABEL[code] ?? code;
+}

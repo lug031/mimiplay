@@ -2,15 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: Manrope, system-ui, sans-serif;
-  color: #001c23;
-  background: #fff;
+@layer base {
+  html {
+    @apply antialiased;
+  }
+  body {
+    font-family: Manrope, system-ui, sans-serif;
+    @apply bg-mimi-black text-white;
+  }
 }
 
 .hero-pattern {
-  background-color: #fff;
-  background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+  background-color: #121212;
+  background-image: radial-gradient(rgb(255 255 255 / 0.06) 1px, transparent 1px);
   background-size: 20px 20px;
 }
 

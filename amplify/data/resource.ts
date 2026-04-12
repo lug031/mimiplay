@@ -31,6 +31,25 @@ const schema = a.schema({
       durationDays: a.integer().required(),
       pricePen: a.float().required(),
       planVariantKey: a.string(),
+      /**
+       * Contenido del anuncio (misma información que en WhatsApp): imagen, titular, datos técnicos,
+       * avisos y bloque libre para listas de precios / tiers / complementos.
+       * El pedido sigue anclado a name + durationDays + pricePen del registro.
+       */
+      promoImageUrl: a.string(),
+      cardTitle: a.string(),
+      accessSummary: a.string(),
+      qualitySummary: a.string(),
+      devicesSummary: a.string(),
+      compatibilitySummary: a.string(),
+      stockNotice: a.string(),
+      warningNotice: a.string(),
+      extraContent: a.string(),
+      /**
+       * STANDARD: ficha tipo catálogo (acceso, calidad, etc.).
+       * EVENT: promoción tipo WhatsApp (UFC, partidos, listas de precios en texto libre); el CTA sigue siendo este plan.
+       */
+      cardPresentation: a.enum(["STANDARD", "EVENT"]),
       active: a.boolean(),
       orders: a.hasMany("CustomerOrder", "servicePlanID"),
     })

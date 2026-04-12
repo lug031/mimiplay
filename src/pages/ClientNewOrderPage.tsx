@@ -2,11 +2,8 @@ import { type FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { dataClient } from "@/lib/dataClient";
 import { uploadPaymentProof } from "@/lib/storagePayment";
+import { formatPlanPrice } from "@/lib/formatPlanPrice";
 import { CATEGORY_LABEL } from "@/lib/orderStatus";
-
-function formatPen(n: number) {
-  return `S/${n.toFixed(2)}`;
-}
 
 export function ClientNewOrderPage() {
   const [search] = useSearchParams();
@@ -29,7 +26,7 @@ export function ClientNewOrderPage() {
 
   useEffect(() => {
     if (!planId) {
-      setLoadError("Selecciona un plan desde la lista de planes.");
+      setLoadError("Selecciona un plan desde el catálogo.");
       return;
     }
     let cancelled = false;
@@ -102,9 +99,9 @@ export function ClientNewOrderPage() {
   if (!planId) {
     return (
       <div>
-        <p className="text-tcr-text-muted">Falta el parámetro de plan.</p>
-        <Link to="/app/planes" className="mt-4 inline-block font-bold text-tcr-teal">
-          Ver planes
+        <p className="text-mimi-muted">Falta el parámetro de plan.</p>
+        <Link to="/catalogo" className="mt-4 inline-block font-bold text-white hover:underline">
+          Ir al catálogo
         </Link>
       </div>
     );
@@ -113,9 +110,9 @@ export function ClientNewOrderPage() {
   if (loadError) {
     return (
       <div>
-        <p className="text-red-700">{loadError}</p>
-        <Link to="/app/planes" className="mt-4 inline-block font-bold text-tcr-teal">
-          Volver a planes
+        <p className="text-red-300">{loadError}</p>
+        <Link to="/catalogo" className="mt-4 inline-block font-bold text-white hover:underline">
+          Volver al catálogo
         </Link>
       </div>
     );
@@ -123,83 +120,87 @@ export function ClientNewOrderPage() {
 
   return (
     <div>
-      <Link to="/app/planes" className="text-sm font-bold text-tcr-teal hover:underline">
-        ← Volver a planes
+      <Link to="/catalogo" className="text-sm font-bold text-white/90 hover:underline">
+        ← Volver al catálogo
       </Link>
-      <h1 className="mt-4 text-2xl font-extrabold text-tcr-dark">Nuevo pedido</h1>
+      <h1 className="mt-4 text-2xl font-extrabold text-white">Nuevo pedido</h1>
+      <p className="mt-2 max-w-2xl text-sm text-mimi-muted">
+        Formaliza la compra del acceso seleccionado: indica datos del titular del pago, adjunta el comprobante y envía
+        el pedido para su validación comercial.
+      </p>
 
-      <div className="mt-6 rounded-2xl border border-tcr-border bg-white p-6 shadow-sm">
-        <p className="text-xs font-bold uppercase text-tcr-teal">
+      <div className="mt-6 rounded-mimi border border-white/10 bg-mimi-elevated p-6 shadow-sm">
+        <p className="text-xs font-bold uppercase text-white/70">
           {category ? CATEGORY_LABEL[category] ?? category : "Servicio"}
         </p>
-        <h2 className="mt-1 text-xl font-extrabold">{platformName}</h2>
-        <p className="font-semibold">{planName}</p>
-        <p className="mt-2 text-sm text-tcr-text-muted">
-          {durationDays} días · <span className="font-extrabold text-tcr-dark">{formatPen(pricePen)}</span>
+        <h2 className="mt-1 text-xl font-extrabold text-white">{platformName}</h2>
+        <p className="font-semibold text-white/90">{planName}</p>
+        <p className="mt-2 text-sm text-mimi-muted">
+          {durationDays} días · <span className="font-extrabold text-white">{formatPlanPrice(pricePen)}</span>
         </p>
       </div>
 
       <form onSubmit={onSubmit} className="mt-8 max-w-lg space-y-4">
         <div>
-          <label className="block text-sm font-bold text-tcr-dark" htmlFor="method">
+          <label className="block text-sm font-bold text-white" htmlFor="method">
             Método de pago
           </label>
           <select
             id="method"
-            className="mt-1 w-full rounded-lg border border-tcr-border px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-mimi border border-white/15 bg-mimi-black px-3 py-2 text-sm text-white"
             value={paymentMethod}
             onChange={(e) => setPaymentMethod(e.target.value)}
           >
-            <option value="YAPE">Yape</option>
-            <option value="PLIN">Plin</option>
+            <option value="YAPE">Pago móvil instantáneo (A)</option>
+            <option value="PLIN">Pago móvil instantáneo (B)</option>
             <option value="TRANSFERENCIA">Transferencia</option>
             <option value="OTRO">Otro</option>
           </select>
         </div>
         <div>
-          <label className="block text-sm font-bold text-tcr-dark" htmlFor="name">
+          <label className="block text-sm font-bold text-white" htmlFor="name">
             Nombre completo del titular del pago
           </label>
           <input
             id="name"
-            className="mt-1 w-full rounded-lg border border-tcr-border px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-mimi border border-white/15 bg-mimi-black px-3 py-2 text-sm text-white"
             value={payerFullName}
             onChange={(e) => setPayerFullName(e.target.value)}
             autoComplete="name"
           />
         </div>
         <div>
-          <label className="block text-sm font-bold text-tcr-dark" htmlFor="code">
+          <label className="block text-sm font-bold text-white" htmlFor="code">
             Código de seguridad / operación
           </label>
           <input
             id="code"
-            className="mt-1 w-full rounded-lg border border-tcr-border px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-mimi border border-white/15 bg-mimi-black px-3 py-2 text-sm text-white"
             value={payerSecurityCode}
             onChange={(e) => setPayerSecurityCode(e.target.value)}
           />
         </div>
         <div>
-          <label className="block text-sm font-bold text-tcr-dark" htmlFor="file">
+          <label className="block text-sm font-bold text-white" htmlFor="file">
             Comprobante de pago
           </label>
           <input
             id="file"
             type="file"
             accept="image/*,.pdf"
-            className="mt-1 w-full text-sm"
+            className="mt-1 w-full text-sm text-white/90 file:mr-3 file:rounded-mimi file:border-0 file:bg-white file:px-3 file:py-1.5 file:text-sm file:font-bold file:text-mimi-black"
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
           />
         </div>
 
         {formError && (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{formError}</div>
+          <div className="rounded-mimi border border-red-500/40 bg-red-950/40 px-3 py-2 text-sm text-red-200">{formError}</div>
         )}
 
         <button
           type="submit"
           disabled={submitting}
-          className="w-full rounded-full bg-tcr-teal py-3 text-sm font-bold text-white hover:bg-[#007a8f] disabled:opacity-60"
+          className="w-full rounded-full bg-white py-3 text-sm font-extrabold text-mimi-black hover:bg-neutral-200 disabled:opacity-60"
         >
           {submitting ? "Enviando…" : "Enviar pedido"}
         </button>

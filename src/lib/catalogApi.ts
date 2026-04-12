@@ -1,6 +1,7 @@
 import { dataClient } from "@/lib/dataClient";
+import type { PlanMarketingFields } from "@/lib/planMarketing";
 
-export type PlanRow = {
+export type PlanRow = PlanMarketingFields & {
   planId: string;
   planName: string;
   durationDays: number;
@@ -11,6 +12,32 @@ export type PlanRow = {
   platformSlug: string;
   category: string | null | undefined;
 };
+
+function marketingFromPlan(plan: {
+  cardPresentation?: string | null;
+  promoImageUrl?: string | null;
+  cardTitle?: string | null;
+  accessSummary?: string | null;
+  qualitySummary?: string | null;
+  devicesSummary?: string | null;
+  compatibilitySummary?: string | null;
+  stockNotice?: string | null;
+  warningNotice?: string | null;
+  extraContent?: string | null;
+}): PlanMarketingFields {
+  return {
+    cardPresentation: plan.cardPresentation,
+    promoImageUrl: plan.promoImageUrl,
+    cardTitle: plan.cardTitle,
+    accessSummary: plan.accessSummary,
+    qualitySummary: plan.qualitySummary,
+    devicesSummary: plan.devicesSummary,
+    compatibilitySummary: plan.compatibilitySummary,
+    stockNotice: plan.stockNotice,
+    warningNotice: plan.warningNotice,
+    extraContent: plan.extraContent,
+  };
+}
 
 /** Catálogo público (API Key) para landing y página /catalogo. */
 export async function listCatalogPlans(): Promise<PlanRow[]> {
@@ -31,6 +58,7 @@ export async function listCatalogPlans(): Promise<PlanRow[]> {
     const plat = platforms.get(plan.platformID);
     if (!plat) continue;
     rows.push({
+      ...marketingFromPlan(plan),
       planId: plan.id,
       planName: plan.name,
       durationDays: plan.durationDays,
@@ -43,8 +71,10 @@ export async function listCatalogPlans(): Promise<PlanRow[]> {
     });
   }
   rows.sort((a, b) => {
-    const so = (plat: PlanRow) => `${plat.platformName} ${plat.planName}`;
-    return so(a).localeCompare(so(b), "es");
+    const ev = (r: PlanRow) => (r.cardPresentation === "EVENT" ? 0 : 1);
+    const byEvent = ev(a) - ev(b);
+    if (byEvent !== 0) return byEvent;
+    return `${a.platformName} ${a.planName}`.localeCompare(`${b.platformName} ${b.planName}`);
   });
   return rows;
 }
@@ -66,6 +96,7 @@ export async function listCatalogPlansAuthed(): Promise<PlanRow[]> {
     const plat = platforms.get(plan.platformID);
     if (!plat) continue;
     rows.push({
+      ...marketingFromPlan(plan),
       planId: plan.id,
       planName: plan.name,
       durationDays: plan.durationDays,
@@ -77,6 +108,11 @@ export async function listCatalogPlansAuthed(): Promise<PlanRow[]> {
       category: plat.category,
     });
   }
-  rows.sort((a, b) => `${a.platformName} ${a.planName}`.localeCompare(`${b.platformName} ${b.planName}`, "es"));
+  rows.sort((a, b) => {
+    const ev = (r: PlanRow) => (r.cardPresentation === "EVENT" ? 0 : 1);
+    const byEvent = ev(a) - ev(b);
+    if (byEvent !== 0) return byEvent;
+    return `${a.platformName} ${a.planName}`.localeCompare(`${b.platformName} ${b.planName}`);
+  });
   return rows;
 }

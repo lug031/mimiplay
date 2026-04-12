@@ -1,3 +1,4 @@
+import { MimiLoadingState } from "@/components/ui/MimiLoadingState";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { dataClient } from "@/lib/dataClient";
@@ -74,22 +75,27 @@ export function ClientOrdersPage() {
   return (
     <div>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-extrabold text-tcr-dark">Mis pedidos</h1>
+        <div>
+          <h1 className="text-2xl font-extrabold text-white">Mis pedidos</h1>
+          <p className="mt-1 max-w-xl text-sm text-mimi-muted">
+            Historial de compras de accesos: estado de pago, asignación y entrega de credenciales por pedido.
+          </p>
+        </div>
         <Link
-          to="/app/planes"
-          className="inline-flex justify-center rounded-full bg-tcr-teal px-5 py-2 text-sm font-bold text-white hover:bg-[#007a8f]"
+          to="/catalogo"
+          className="inline-flex justify-center rounded-full border border-white/20 bg-white px-5 py-2 text-sm font-extrabold text-mimi-black hover:bg-neutral-200"
         >
           Nuevo pedido
         </Link>
       </div>
 
-      {loading && <p className="mt-6 text-tcr-text-muted">Cargando…</p>}
+      {loading && <MimiLoadingState tone="dark" layout="inline" className="mt-6" />}
       {error && (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</div>
+        <div className="mt-6 rounded-mimi border border-red-500/40 bg-red-950/40 px-4 py-3 text-sm text-red-200">{error}</div>
       )}
 
       {!loading && !error && rows.length === 0 && (
-        <p className="mt-6 text-tcr-text-muted">Aún no tienes pedidos.</p>
+        <p className="mt-6 text-mimi-muted">Aún no tienes pedidos.</p>
       )}
 
       <ul className="mt-8 space-y-3">
@@ -97,12 +103,12 @@ export function ClientOrdersPage() {
           <li key={r.id}>
             <Link
               to={`/app/pedidos/${r.id}`}
-              className="flex flex-col rounded-xl border border-tcr-border bg-white px-4 py-3 shadow-sm transition hover:border-tcr-teal sm:flex-row sm:items-center sm:justify-between"
+              className="flex flex-col rounded-mimi border border-white/10 bg-mimi-elevated px-4 py-3 shadow-sm transition hover:border-white/25 sm:flex-row sm:items-center sm:justify-between"
             >
               <div>
-                <p className="font-bold text-tcr-dark">{r.planLabel}</p>
-                <p className="text-xs text-tcr-text-muted">
-                  {r.createdAt ? new Date(r.createdAt).toLocaleString("es-PE") : "Pedido"}
+                <p className="font-bold text-white">{r.planLabel}</p>
+                <p className="text-xs text-mimi-muted">
+                  {r.createdAt ? new Date(r.createdAt).toLocaleString() : "Pedido"}
                 </p>
               </div>
               <StatusBadge tone={badgeTone(r.status)}>{orderStatusLabel(r.status)}</StatusBadge>
