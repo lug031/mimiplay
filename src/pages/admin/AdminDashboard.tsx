@@ -7,14 +7,9 @@ const cards = [
     desc: "Define plataformas y anuncios (precio, vigencia, tarjeta en tienda) visibles para la venta.",
   },
   {
-    to: "/admin/cola",
-    title: "Cola",
-    desc: "Pedidos con comprobante cargado: revisión de pago y decisión de avance o cancelación.",
-  },
-  {
     to: "/admin/pedidos",
-    title: "Todos los pedidos",
-    desc: "Pipeline completo de ventas: filtra por estado, confirma pagos y registra la entrega de accesos.",
+    title: "Pedidos",
+    desc: "Revisa comprobantes, confirma pagos y cierra entregas. Filtra por estado (p. ej. pago enviado) desde el listado.",
   },
   {
     to: "/admin/inventario",
@@ -28,8 +23,8 @@ export function AdminDashboard() {
     <div>
       <h1 className="text-2xl font-extrabold text-mimi-black">Panel administrador</h1>
       <p className="mt-2 max-w-2xl text-sm text-mimi-subtle">
-        Operación comercial de MimiPlay: publicar oferta (catálogo), alimentar stock (inventario), validar pagos (cola)
-        y cerrar ventas con entrega de credenciales al comprador.
+        Operación comercial de MimiPlay: publicar oferta (catálogo), alimentar stock (inventario), validar pagos y cerrar
+        ventas con entrega de credenciales al comprador.
       </p>
       <div className="mt-10 grid gap-4 sm:grid-cols-2">
         {cards.map((c) => (

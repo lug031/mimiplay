@@ -1,9 +1,10 @@
 import { MimiLoadingState } from "@/components/ui/MimiLoadingState";
+import { ClientCopyableCredentialText, RevealablePasswordReadonly } from "@/components/ui/PasswordReveal";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { getUrl } from "aws-amplify/storage";
 import { dataClient } from "@/lib/dataClient";
-import { formatPlanPrice } from "@/lib/formatPlanPrice";
+import { orderChosenOptionSummaryLine } from "@/lib/purchaseOptions";
+import { formatCredentialRenewalDisplay } from "@/lib/formatCredentialRenewal";
 import { orderStatusLabel } from "@/lib/orderStatus";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 
@@ -14,7 +15,6 @@ export function ClientOrderDetailPage() {
   const [status, setStatus] = useState<string | null>(null);
   const [planLabel, setPlanLabel] = useState("");
   const [chosenSummary, setChosenSummary] = useState<string | null>(null);
-  const [proofUrl, setProofUrl] = useState<string | null>(null);
   const [credentials, setCredentials] = useState<{
     email?: string | null;
     password?: string | null;
@@ -41,7 +41,7 @@ export function ClientOrderDetailPage() {
         if (!cancelled) {
           setChosenSummary(
             chosenLabel != null && chosenLabel !== ""
-              ? `${chosenLabel} · ${chosenDays ?? "—"} días · ${formatPlanPrice(chosenPrice ?? 0)}`
+              ? orderChosenOptionSummaryLine(chosenLabel, chosenDays ?? null, chosenPrice ?? null)
               : null,
           );
         }
@@ -53,14 +53,6 @@ export function ClientOrderDetailPage() {
             if (!cancelled) {
               setPlanLabel(plr.data ? `${plr.data.name} · ${p.name}` : p.name);
             }
-          }
-        }
-        if (o.paymentProofStorageKey) {
-          try {
-            const u = await getUrl({ path: o.paymentProofStorageKey });
-            if (!cancelled) setProofUrl(u.url.toString());
-          } catch {
-            if (!cancelled) setProofUrl(null);
           }
         }
         if (!cancelled) {
@@ -131,23 +123,6 @@ export function ClientOrderDetailPage() {
             </div>
           </div>
 
-          {proofUrl && (
-            <div className="rounded-mimi border border-white/10 bg-mimi-elevated p-4">
-              <h2 className="text-sm font-bold text-white">Comprobante enviado</h2>
-              <a
-                href={proofUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-2 inline-block text-sm font-bold text-white hover:underline"
-              >
-                Abrir comprobante
-              </a>
-              <div className="mt-3 overflow-hidden rounded-mimi border border-white/10">
-                <img src={proofUrl} alt="Comprobante" className="max-h-80 w-full object-contain" />
-              </div>
-            </div>
-          )}
-
           {status === "FULFILLED" && (credentials.email || credentials.password) && (
             <div className="rounded-mimi border border-white/15 bg-mimi-elevated p-5">
               <h2 className="text-lg font-extrabold text-white">Tus credenciales</h2>
@@ -155,13 +130,21 @@ export function ClientOrderDetailPage() {
                 {credentials.email && (
                   <div>
                     <dt className="font-bold text-white/80">Correo</dt>
-                    <dd className="font-mono text-white">{credentials.email}</dd>
+                    <dd>
+                      <ClientCopyableCredentialText value={credentials.email} copyLabel="Copiar correo" />
+                    </dd>
                   </div>
                 )}
                 {credentials.password && (
                   <div>
                     <dt className="font-bold text-white/80">Contraseña</dt>
-                    <dd className="font-mono text-white">{credentials.password}</dd>
+                    <dd>
+                      <RevealablePasswordReadonly
+                        password={credentials.password}
+                        resetKey={`${orderId}:${credentials.password}`}
+                        variant="client"
+                      />
+                    </dd>
                   </div>
                 )}
                 {credentials.profile && (
@@ -179,9 +162,7 @@ export function ClientOrderDetailPage() {
                 {credentials.renews && (
                   <div>
                     <dt className="font-bold text-white/80">Renovación / vigencia</dt>
-                    <dd className="text-white/90">
-                      {new Date(credentials.renews).toLocaleString()}
-                    </dd>
+                    <dd className="text-white/90">{formatCredentialRenewalDisplay(credentials.renews)}</dd>
                   </div>
                 )}
               </dl>

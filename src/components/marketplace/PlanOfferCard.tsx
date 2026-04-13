@@ -4,12 +4,7 @@ import type { PlanRow } from "@/lib/catalogApi";
 import { isEventCardPresentation, planDisplayTitle, planServiceDetailsForCard } from "@/lib/planMarketing";
 import { CATEGORY_LABEL } from "@/lib/orderStatus";
 import { formatPlanPrice } from "@/lib/formatPlanPrice";
-import {
-  catalogTierRowCaption,
-  checkoutTierChoices,
-  type CheckoutTierChoice,
-  type PurchaseTierGroup,
-} from "@/lib/purchaseOptions";
+import { catalogTierRowCaption, checkoutTierChoices, type CheckoutTierChoice } from "@/lib/purchaseOptions";
 import { getUrl } from "aws-amplify/storage";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
@@ -30,24 +25,62 @@ type Props = {
   catalogChrome?: boolean;
 };
 
-function usePlanPurchaseSelection(p: PlanRow, buildCtaTo: Props["buildCtaTo"]) {
+function usePlanPurchaseSelection(
+  p: PlanRow,
+  buildCtaTo: Props["buildCtaTo"],
+  opts?: { deferOptionToCheckout?: boolean },
+) {
   const catalogKey = JSON.stringify(p.purchaseTierCatalog);
   const choices = useMemo(
     () => checkoutTierChoices(p.purchaseTierCatalog, { durationDays: p.durationDays, pricePen: p.pricePen }),
     [p.planId, p.durationDays, p.pricePen, catalogKey],
   );
-  const [selectedId, setSelectedId] = useState("");
+  /** Índice en `choices` (orden grupos × tiers). Evita colisiones si dos tiers repiten el mismo `id`. */
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
   useEffect(() => {
-    setSelectedId(choices[0]?.id ?? "");
-  }, [p.planId, catalogKey, choices]);
-  const selected: CheckoutTierChoice | undefined = choices.find((c) => c.id === selectedId) ?? choices[0];
+    setSelectedIndex(0);
+  }, [p.planId, catalogKey]);
+
+  useEffect(() => {
+    setSelectedIndex((i) => {
+      if (choices.length === 0) return 0;
+      return Math.min(Math.max(0, i), choices.length - 1);
+    });
+  }, [choices.length]);
+
+  const selected: CheckoutTierChoice | undefined =
+    choices.length > 0 ? (choices[selectedIndex] ?? choices[0]) : undefined;
   const showPicker = choices.length > 1;
   const passOpcion = Boolean(selected && (choices.length > 1 || selected.id !== "_base"));
-  const ctaHref = useMemo(
-    () => buildCtaTo(p.planId, passOpcion ? selected?.id : undefined),
-    [buildCtaTo, p.planId, passOpcion, selected?.id],
-  );
-  return { selectedId, setSelectedId, selected, showPicker, passOpcion, ctaHref };
+  const defer = Boolean(opts?.deferOptionToCheckout);
+  const ctaHref = useMemo(() => {
+    if (defer) return buildCtaTo(p.planId);
+    return buildCtaTo(p.planId, passOpcion ? selected?.id : undefined);
+  }, [buildCtaTo, defer, p.planId, passOpcion, selected?.id]);
+  return { selectedIndex, setSelectedIndex, selected, showPicker, passOpcion, ctaHref, choices };
+}
+
+/** Texto de precio en catálogo (sin elegir opción en la tarjeta). */
+function catalogPriceSummary(choices: CheckoutTierChoice[]): { priceLine: string; caption: string } {
+  if (choices.length === 0) return { priceLine: "—", caption: "" };
+  if (choices.length === 1) {
+    const c = choices[0]!;
+    return { priceLine: formatPlanPrice(c.pricePen), caption: `${c.durationDays} días` };
+  }
+  const prices = choices.map((x) => x.pricePen);
+  const minP = Math.min(...prices);
+  const maxP = Math.max(...prices);
+  if (minP === maxP) {
+    return {
+      priceLine: formatPlanPrice(minP),
+      caption: `${choices.length} opciones · eliges al pedir`,
+    };
+  }
+  return {
+    priceLine: `${formatPlanPrice(minP)} – ${formatPlanPrice(maxP)}`,
+    caption: "Eliges la opción al hacer el pedido",
+  };
 }
 
 function PlanCardPromoImagePlaceholder({ pulse, logoClassName = "" }: { pulse: boolean; logoClassName?: string }) {
@@ -61,7 +94,24 @@ function PlanCardPromoImagePlaceholder({ pulse, logoClassName = "" }: { pulse: b
   );
 }
 
-function PlanCardPromoImage({
+/** Catálogo: franja superior a todo el ancho (tarjeta vertical: imagen → texto → botón). */
+const catalogPromoShellOuter =
+  "w-full shrink-0 border-b border-white/10 bg-gradient-to-b from-mimi-black via-mimi-black to-mimi-void";
+const catalogPromoShellPad = "flex w-full items-stretch justify-center p-0";
+const catalogPromoShellFrame =
+  "relative isolate flex aspect-[4/3] w-full max-h-[15rem] items-center justify-center overflow-hidden bg-mimi-black/45 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.07)] before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(ellipse_80%_65%_at_50%_40%,rgba(255,255,255,0.06),transparent_62%)] sm:max-h-[17.5rem]";
+
+function CatalogPromoImageShell({ children }: { children: ReactNode }) {
+  return (
+    <div className={catalogPromoShellOuter}>
+      <div className={catalogPromoShellPad}>
+        <div className={catalogPromoShellFrame}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
+export function PlanCardPromoImage({
   raw,
   title,
   maxClass = "max-h-56",
@@ -73,24 +123,32 @@ function PlanCardPromoImage({
   /** Imagen tipo tarjeta de catálogo: esquinas superiores redondeadas y relación fija. */
   catalogChrome?: boolean;
 }) {
-  const isHttp = /^https?:\/\//i.test(raw);
-  const [resolvedSrc, setResolvedSrc] = useState<string | null>(() => (isHttp ? raw : null));
-  const [urlState, setUrlState] = useState<"pending" | "ready" | "fail">(() => (isHttp ? "ready" : "pending"));
+  const trimmed = raw.trim();
+  const isHttp = /^https?:\/\//i.test(trimmed);
+  const [resolvedSrc, setResolvedSrc] = useState<string | null>(() => (isHttp ? trimmed : null));
+  const [urlState, setUrlState] = useState<"pending" | "ready" | "fail">(() =>
+    !trimmed ? "fail" : isHttp ? "ready" : "pending",
+  );
   const [imgLoaded, setImgLoaded] = useState(false);
   const [broken, setBroken] = useState(false);
 
   useEffect(() => {
     setBroken(false);
     setImgLoaded(false);
+    if (!trimmed) {
+      setResolvedSrc(null);
+      setUrlState("fail");
+      return;
+    }
     if (isHttp) {
-      setResolvedSrc(raw);
+      setResolvedSrc(trimmed);
       setUrlState("ready");
       return;
     }
     setUrlState("pending");
     setResolvedSrc(null);
     let cancelled = false;
-    getUrl({ path: raw })
+    getUrl({ path: trimmed })
       .then(({ url }) => {
         if (!cancelled) {
           setResolvedSrc(url.toString());
@@ -106,7 +164,7 @@ function PlanCardPromoImage({
     return () => {
       cancelled = true;
     };
-  }, [raw, isHttp]);
+  }, [trimmed, isHttp]);
 
   const showPhoto = urlState === "ready" && Boolean(resolvedSrc) && imgLoaded && !broken;
   const pulseLogo =
@@ -114,13 +172,12 @@ function PlanCardPromoImage({
 
   if (catalogChrome) {
     return (
-      <div className="relative overflow-hidden rounded-t-2xl bg-mimi-black">
-        {!showPhoto ? <PlanCardPromoImagePlaceholder pulse={pulseLogo} /> : null}
+      <CatalogPromoImageShell>
         {resolvedSrc && urlState === "ready" ? (
           <img
             src={resolvedSrc}
             alt={title}
-            className={`relative z-[1] aspect-[16/10] w-full max-h-[220px] object-cover object-center transition-opacity duration-300 sm:max-h-[240px] ${showPhoto ? "opacity-100" : "opacity-0"}`}
+            className={`absolute inset-0 z-[1] m-auto max-h-full max-w-full object-contain object-center px-2 py-3 drop-shadow-[0_10px_28px_rgba(0,0,0,0.42)] transition-opacity duration-300 ${showPhoto ? "opacity-100" : "opacity-0"}`}
             onLoad={() => {
               setImgLoaded(true);
               setBroken(false);
@@ -131,7 +188,15 @@ function PlanCardPromoImage({
             }}
           />
         ) : null}
-      </div>
+        {!showPhoto ? (
+          <div
+            className={`pointer-events-none absolute inset-0 z-[2] flex items-center justify-center p-4 ${pulseLogo ? "[&_img]:animate-pulse" : ""}`}
+            aria-hidden
+          >
+            <MimiPlayLogo variant="icon" to={false} heightClass="h-16 w-16 sm:h-20 sm:w-20" className="opacity-75" />
+          </div>
+        ) : null}
+      </CatalogPromoImageShell>
     );
   }
 
@@ -157,65 +222,12 @@ function PlanCardPromoImage({
   );
 }
 
-type CatalogTierPickerProps = {
-  planId: string;
-  groups: PurchaseTierGroup[];
-  selectedId: string;
-  setSelectedId: (id: string) => void;
-  variant: "standard" | "event";
-};
-
-function CatalogPurchaseTierPicker({ planId, groups, selectedId, setSelectedId, variant }: CatalogTierPickerProps) {
-  const isEvent = variant === "event";
-  const radioName = isEvent ? `purchase-event-${planId}` : `purchase-${planId}`;
-  const rowClass = isEvent
-    ? "flex cursor-pointer items-center gap-2 rounded-xl border border-orange-400/20 bg-mimi-black/45 px-3 py-2 transition hover:border-orange-400/35 has-[:checked]:border-orange-400/55 has-[:checked]:bg-orange-500/10"
-    : "flex cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-mimi-black/40 px-3 py-2 transition hover:border-white/18 has-[:checked]:border-amber-400/45 has-[:checked]:bg-amber-500/[0.08]";
-  const radioClass = isEvent
-    ? "h-3.5 w-3.5 shrink-0 border-white/40 bg-mimi-black accent-orange-500 focus:ring-orange-500/40"
-    : "h-3.5 w-3.5 shrink-0 border-white/40 bg-mimi-black accent-amber-500 focus:ring-amber-500/40";
-
-  return (
-    <fieldset className="space-y-4 border-0 p-0">
-      <legend className="sr-only">Elige una opción de compra</legend>
-      {groups.map((g) => (
-        <div key={g.id} className="space-y-1.5">
-          {g.title.trim() ? (
-            <p className="pl-0.5 text-[11px] font-extrabold uppercase tracking-wide text-white/88">
-              {g.emoji ? <span className="mr-1.5 font-normal normal-case tracking-normal">{g.emoji}</span> : null}
-              {g.title}
-            </p>
-          ) : null}
-          {g.tiers.map((c) => (
-            <label key={c.id} className={rowClass}>
-              <input
-                type="radio"
-                className={radioClass}
-                name={radioName}
-                value={c.id}
-                checked={selectedId === c.id}
-                onChange={() => setSelectedId(c.id)}
-              />
-              <span className="select-none text-sm text-white/50" aria-hidden>
-                ▫️
-              </span>
-              <span className="rounded-md border border-white/10 bg-white/[0.07] px-2 py-0.5 font-mono text-[11px] font-semibold tabular-nums text-white/90">
-                {catalogTierRowCaption(c)}
-              </span>
-              <span className="text-sm text-white/35" aria-hidden>
-                →
-              </span>
-              <span className="min-w-0 flex-1 text-right text-base font-extrabold text-white">{formatPlanPrice(c.pricePen)}</span>
-            </label>
-          ))}
-        </div>
-      ))}
-    </fieldset>
-  );
-}
-
 function PlanOfferCardStandard({ plan: p, buildCtaTo, ctaLabel, catalogChrome }: Props) {
-  const { selectedId, setSelectedId, selected, showPicker, ctaHref } = usePlanPurchaseSelection(p, buildCtaTo);
+  const { selectedIndex, setSelectedIndex, selected, showPicker, ctaHref, choices } = usePlanPurchaseSelection(
+    p,
+    buildCtaTo,
+    { deferOptionToCheckout: Boolean(catalogChrome) },
+  );
   const title = planDisplayTitle(p);
   const serviceDetails = planServiceDetailsForCard(p);
   const rawImg = p.promoImageUrl?.trim() ?? "";
@@ -224,84 +236,71 @@ function PlanOfferCardStandard({ plan: p, buildCtaTo, ctaLabel, catalogChrome }:
   const extra = p.extraContent?.trim();
   const imageBlock: ReactNode = rawImg ? <PlanCardPromoImage key={rawImg} raw={rawImg} title={title} /> : null;
   const hasRich = Boolean(rawImg) || serviceDetails || stock || warn || extra;
-  /** Catálogo público: tarjetas en cuadrícula, estilo anuncio vertical. */
+  /** Catálogo público: tarjeta vertical (imagen arriba → datos → botón); tier en /pedido/nuevo. */
   const adLike = Boolean(catalogChrome);
 
   if (adLike) {
+    const priceSummary = catalogPriceSummary(choices);
     return (
-      <article className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-white/12 bg-[#1c1c21] shadow-lg shadow-black/35 transition hover:border-white/22 hover:shadow-xl">
+      <article className="flex h-full w-full flex-col overflow-hidden rounded-mimi border border-white/10 bg-mimi-elevated shadow-sm transition hover:border-white/15">
         {rawImg ? (
           <PlanCardPromoImage key={rawImg} catalogChrome raw={rawImg} title={title} />
         ) : (
-          <div className="relative flex aspect-[16/10] max-h-[220px] shrink-0 items-center justify-center overflow-hidden rounded-t-2xl bg-mimi-black sm:max-h-[240px]">
-            <MimiPlayLogo variant="icon" to={false} heightClass="h-16 w-16 sm:h-20 sm:w-20" className="opacity-80" />
-          </div>
+          <CatalogPromoImageShell>
+            <div className="relative z-[1] flex h-full min-h-[8rem] w-full items-center justify-center p-4" aria-hidden>
+              <MimiPlayLogo variant="icon" to={false} heightClass="h-16 w-16 sm:h-20 sm:w-20" className="opacity-75" />
+            </div>
+          </CatalogPromoImageShell>
         )}
 
-        <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2.5 p-4">
           <div>
-            <h3 className="text-lg font-extrabold leading-tight tracking-tight text-white">{title}</h3>
-            <p className="mt-1 text-[11px] text-white/40">
+            <h3 className="text-base font-extrabold leading-snug text-white">{title}</h3>
+            <p className="mt-1 text-[11px] leading-snug text-mimi-muted">
               {p.platformName}
-              {showPicker ? " · Varias vigencias y precios" : ` · ${p.durationDays} días`}
+              {choices.length > 1 ? " · Opción al hacer el pedido" : ` · ${p.durationDays} días`}
               {p.planVariantKey ? ` · ${p.planVariantKey}` : ""}
             </p>
           </div>
 
           {serviceDetails ? (
-            <div className="text-sm leading-relaxed text-white/82 whitespace-pre-wrap [word-break:break-word]">{serviceDetails}</div>
+            <div className="max-h-28 overflow-y-auto rounded-mimi border border-white/10 bg-mimi-black/40 px-3 py-2 text-xs leading-relaxed text-white/80 whitespace-pre-wrap [word-break:break-word] sm:max-h-32 sm:text-[13px]">
+              {serviceDetails}
+            </div>
           ) : null}
 
-          {showPicker ? (
-            <CatalogPurchaseTierPicker
-              planId={p.planId}
-              groups={p.purchaseTierCatalog.groups}
-              selectedId={selectedId}
-              setSelectedId={setSelectedId}
-              variant="standard"
-            />
-          ) : (
-            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-mimi-black/35 px-3 py-2.5">
-              <span className="rounded-md border border-white/10 bg-white/[0.07] px-2 py-0.5 font-mono text-[11px] font-semibold tabular-nums text-white/90">
-                {selected?.durationDays ?? p.durationDays} días
-              </span>
-              <span className="text-sm text-white/35">→</span>
-              <span className="text-base font-extrabold text-white">{formatPlanPrice(selected?.pricePen ?? p.pricePen)}</span>
-            </div>
-          )}
-
           {stock ? (
-            <p className="inline-flex w-fit rounded-lg border border-amber-400/35 bg-amber-500/10 px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide text-amber-100">
+            <p className="inline-flex w-fit rounded-mimi border border-white/12 bg-mimi-black/40 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white/75">
               {stock}
             </p>
           ) : null}
 
           {warn ? (
-            <aside className="rounded-lg border border-white/12 bg-mimi-black/55 px-2.5 py-2 text-[11px] leading-relaxed text-amber-100/95">
-              <span className="font-bold text-amber-200">Aviso: </span>
+            <aside className="rounded-mimi border border-white/10 bg-mimi-black/50 px-2.5 py-2 text-[11px] leading-relaxed text-white/85">
+              <span className="font-bold text-white">Aviso: </span>
               {warn}
             </aside>
           ) : null}
 
           {extra ? (
-            <div className="text-xs leading-relaxed text-white/82 whitespace-pre-wrap [word-break:break-word]">{extra}</div>
+            <div className="max-h-24 overflow-y-auto text-[11px] leading-relaxed text-white/75 whitespace-pre-wrap [word-break:break-word] sm:max-h-28 sm:text-xs">
+              {extra}
+            </div>
           ) : null}
 
-          <div className="mt-auto border-t border-white/10 pt-4">
-            <p className="text-center text-2xl font-extrabold tabular-nums tracking-tight text-white">
-              {formatPlanPrice(selected?.pricePen ?? p.pricePen)}
+          <div className="mt-auto border-t border-white/10 pt-3">
+            <p className="text-lg font-extrabold tabular-nums tracking-tight text-white">{priceSummary.priceLine}</p>
+            {priceSummary.caption ? (
+              <p className="mt-1 text-[10px] font-semibold uppercase leading-tight text-mimi-muted">{priceSummary.caption}</p>
+            ) : null}
+            <p className="mt-2 text-[10px] leading-snug text-mimi-subtle">
+              Precio y vigencia definitivos al formalizar el pedido.
             </p>
-            <p className="mt-0.5 text-center text-[10px] font-semibold uppercase leading-tight text-white/45">
-              por {selected?.durationDays ?? p.durationDays} días · botón de pedido
-            </p>
-            <MimiButton to={ctaHref} variant="primary" className="mt-3 w-full !py-2.5 !text-sm !font-extrabold">
-              {ctaLabel}
-            </MimiButton>
           </div>
 
-          <p className="text-center text-[10px] leading-snug text-white/30">
-            Precio según la opción marcada arriba. Entrega sujeta a validación de pago.
-          </p>
+          <MimiButton to={ctaHref} variant="primary" className="w-full !rounded-mimi !py-2.5 !text-sm !font-extrabold">
+            {ctaLabel}
+          </MimiButton>
         </div>
       </article>
     );
@@ -364,37 +363,43 @@ function PlanOfferCardStandard({ plan: p, buildCtaTo, ctaLabel, catalogChrome }:
             <fieldset className="rounded-mimi border border-white/10 bg-mimi-black/35 p-3">
               <legend className="px-1 text-[10px] font-extrabold uppercase tracking-wide text-white/65">Elige qué compras</legend>
               <div className="mt-2 space-y-4">
-                {p.purchaseTierCatalog.groups.map((g) => (
-                  <div key={g.id} className="space-y-2">
-                    {g.title.trim() ? (
-                      <p className="text-[10px] font-extrabold uppercase tracking-wide text-white/70">
-                        {g.emoji ? <span className="mr-1 font-normal normal-case">{g.emoji}</span> : null}
-                        {g.title}
-                      </p>
-                    ) : null}
-                    {g.tiers.map((c) => (
-                      <label
-                        key={c.id}
-                        className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-white/10 px-2.5 py-2 hover:bg-white/5 has-[:checked]:border-amber-400/50 has-[:checked]:bg-amber-500/10"
-                      >
-                        <input
-                          type="radio"
-                          className="mt-1"
-                          name={`purchase-${p.planId}`}
-                          value={c.id}
-                          checked={selectedId === c.id}
-                          onChange={() => setSelectedId(c.id)}
-                        />
-                        <span className="min-w-0 text-sm leading-snug">
-                          <span className="font-bold text-white">{catalogTierRowCaption(c)}</span>
-                          <span className="mt-0.5 block text-xs text-white/60">
-                            {formatPlanPrice(c.pricePen)} · {c.durationDays} días
-                          </span>
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                ))}
+                {(() => {
+                  let idx = 0;
+                  return p.purchaseTierCatalog.groups.map((g) => (
+                    <div key={g.id} className="space-y-2">
+                      {g.title.trim() || g.emoji ? (
+                        <p className="text-[10px] font-extrabold uppercase tracking-wide text-white/70">
+                          {g.emoji ? <span className="mr-1 font-normal normal-case">{g.emoji}</span> : null}
+                          {g.title.trim()}
+                        </p>
+                      ) : null}
+                      {g.tiers.map((c) => {
+                        const i = idx++;
+                        return (
+                          <label
+                            key={`${p.planId}-mk-${i}`}
+                            className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-white/10 px-2.5 py-2 hover:bg-white/5 has-[:checked]:border-amber-400/50 has-[:checked]:bg-amber-500/10"
+                          >
+                            <input
+                              type="radio"
+                              className="mt-1"
+                              name={`purchase-${p.planId}`}
+                              value={i}
+                              checked={selectedIndex === i}
+                              onChange={() => setSelectedIndex(i)}
+                            />
+                            <span className="min-w-0 text-sm leading-snug">
+                              <span className="font-bold text-white">{catalogTierRowCaption(c)}</span>
+                              <span className="mt-0.5 block text-xs text-white/60">
+                                {formatPlanPrice(c.pricePen)} · {c.durationDays} días
+                              </span>
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  ));
+                })()}
               </div>
             </fieldset>
           ) : null}
@@ -469,7 +474,11 @@ function PlanOfferCardStandard({ plan: p, buildCtaTo, ctaLabel, catalogChrome }:
 }
 
 function PlanOfferCardEvent({ plan: p, buildCtaTo, ctaLabel, catalogChrome }: Props) {
-  const { selectedId, setSelectedId, selected, showPicker, ctaHref } = usePlanPurchaseSelection(p, buildCtaTo);
+  const { selectedIndex, setSelectedIndex, selected, showPicker, ctaHref, choices } = usePlanPurchaseSelection(
+    p,
+    buildCtaTo,
+    { deferOptionToCheckout: Boolean(catalogChrome) },
+  );
   const title = planDisplayTitle(p);
   const serviceDetails = planServiceDetailsForCard(p);
   const rawImg = p.promoImageUrl?.trim() ?? "";
@@ -482,93 +491,76 @@ function PlanOfferCardEvent({ plan: p, buildCtaTo, ctaLabel, catalogChrome }: Pr
   const adLike = Boolean(catalogChrome);
 
   if (adLike) {
+    const priceSummary = catalogPriceSummary(choices);
     return (
-      <article className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-orange-400/45 bg-[#1c1c21] shadow-lg shadow-orange-950/30 ring-1 ring-orange-500/20 transition hover:border-orange-400/60 hover:ring-orange-400/30">
+      <article className="flex h-full w-full flex-col overflow-hidden rounded-mimi border border-white/10 bg-mimi-elevated shadow-sm transition hover:border-white/15">
         {rawImg ? (
           <PlanCardPromoImage key={rawImg} catalogChrome raw={rawImg} title={title} />
         ) : (
-          <div className="relative flex aspect-[16/10] max-h-[220px] shrink-0 items-center justify-center overflow-hidden rounded-t-2xl bg-mimi-black sm:max-h-[240px]">
-            <MimiPlayLogo variant="icon" to={false} heightClass="h-16 w-16 sm:h-20 sm:w-20" className="opacity-80" />
-          </div>
+          <CatalogPromoImageShell>
+            <div className="relative z-[1] flex h-full min-h-[8rem] w-full items-center justify-center p-4" aria-hidden>
+              <MimiPlayLogo variant="icon" to={false} heightClass="h-16 w-16 sm:h-20 sm:w-20" className="opacity-75" />
+            </div>
+          </CatalogPromoImageShell>
         )}
 
-        <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
-          <span className="w-fit rounded-full border border-orange-400/45 bg-orange-500/12 px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-orange-100">
-            Evento / promoción
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2.5 p-4">
+          <span className="w-fit rounded-mimi border border-white/12 bg-mimi-black/40 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-mimi-muted">
+            Evento
           </span>
 
           <div>
-            <h3 className="text-lg font-black leading-tight tracking-tight text-white">{title}</h3>
-            <p className="mt-1 text-[11px] text-white/45">
+            <h3 className="text-base font-extrabold leading-snug text-white">{title}</h3>
+            <p className="mt-1 text-[11px] leading-snug text-mimi-muted">
               {p.platformName}
-              {showPicker ? " · Elige la opción que pagarás" : ` · ${p.durationDays} días`}
+              {choices.length > 1 ? " · Opción al hacer el pedido" : ` · ${p.durationDays} días`}
             </p>
           </div>
 
-          {showPicker ? (
-            <CatalogPurchaseTierPicker
-              planId={p.planId}
-              groups={p.purchaseTierCatalog.groups}
-              selectedId={selectedId}
-              setSelectedId={setSelectedId}
-              variant="event"
-            />
-          ) : (
-            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-orange-400/20 bg-mimi-black/40 px-3 py-2.5">
-              <span className="rounded-md border border-white/10 bg-white/[0.07] px-2 py-0.5 font-mono text-[11px] font-semibold tabular-nums text-white/90">
-                {selected?.durationDays ?? p.durationDays} días
-              </span>
-              <span className="text-sm text-white/35">→</span>
-              <span className="text-base font-extrabold text-white">{formatPlanPrice(selected?.pricePen ?? p.pricePen)}</span>
-            </div>
-          )}
-
           {warn ? (
-            <aside className="rounded-lg border border-amber-400/35 bg-amber-950/30 px-2.5 py-2 text-[11px] font-medium leading-relaxed text-amber-50 whitespace-pre-wrap">
+            <aside className="rounded-mimi border border-white/10 bg-mimi-black/50 px-2.5 py-2 text-[11px] leading-relaxed text-white/85 whitespace-pre-wrap">
               {warn}
             </aside>
           ) : null}
 
           {stock ? (
-            <p className="inline-flex w-fit rounded-lg border border-orange-400/35 bg-orange-500/10 px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide text-orange-50">
+            <p className="inline-flex w-fit rounded-mimi border border-white/12 bg-mimi-black/40 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white/75">
               {stock}
             </p>
           ) : null}
 
           {extra ? (
-            <div className="text-xs leading-relaxed text-white/88 whitespace-pre-wrap [word-break:break-word] sm:text-[13px]">{extra}</div>
+            <div className="max-h-24 overflow-y-auto rounded-mimi border border-white/10 bg-mimi-black/35 px-3 py-2 text-[11px] leading-relaxed text-white/80 whitespace-pre-wrap [word-break:break-word] sm:max-h-28 sm:text-xs">
+              {extra}
+            </div>
           ) : (
-            <p className="text-[11px] text-white/35">
-              En admin, <strong className="text-white/60">Editar</strong> el anuncio para añadir el cuerpo del evento (texto largo con opciones informativas).
+            <p className="text-[11px] text-mimi-subtle">
+              Añade el cuerpo del evento en <strong className="text-white/70">Editar anuncio</strong> (admin).
             </p>
           )}
 
           {serviceDetails ? (
-            <details className="rounded-lg border border-white/10 bg-mimi-black/35 text-xs text-white/75">
-              <summary className="cursor-pointer px-2.5 py-2 font-bold text-white/85 hover:bg-white/[0.04]">
-                Detalles del servicio
-              </summary>
-              <div className="border-t border-white/10 px-2.5 py-2 whitespace-pre-wrap [word-break:break-word] text-white/80">
+            <details className="rounded-mimi border border-white/10 bg-mimi-black/35 text-xs text-white/75">
+              <summary className="cursor-pointer px-2.5 py-2 font-bold text-white/80 hover:bg-white/[0.04]">Detalles del servicio</summary>
+              <div className="max-h-28 overflow-y-auto border-t border-white/10 px-2.5 py-2 whitespace-pre-wrap [word-break:break-word] text-white/80 sm:max-h-32">
                 {serviceDetails}
               </div>
             </details>
           ) : null}
 
-          <div className="mt-auto border-t border-orange-500/25 pt-4">
-            <p className="text-center text-2xl font-black tabular-nums tracking-tight text-white">
-              {formatPlanPrice(selected?.pricePen ?? p.pricePen)}
+          <div className="mt-auto border-t border-white/10 pt-3">
+            <p className="text-lg font-extrabold tabular-nums tracking-tight text-white">{priceSummary.priceLine}</p>
+            {priceSummary.caption ? (
+              <p className="mt-1 text-[10px] font-semibold uppercase leading-tight text-mimi-muted">{priceSummary.caption}</p>
+            ) : null}
+            <p className="mt-2 text-[10px] leading-snug text-mimi-subtle">
+              Texto informativo. Precio y vigencia al formalizar el pedido.
             </p>
-            <p className="mt-0.5 text-center text-[10px] font-bold uppercase leading-tight text-orange-100/55">
-              Opción seleccionada · {selected?.durationDays ?? p.durationDays} días
-            </p>
-            <MimiButton to={ctaHref} variant="primary" className="mt-3 w-full !py-2.5 !text-sm !font-extrabold">
-              {ctaLabel}
-            </MimiButton>
           </div>
 
-          <p className="text-center text-[10px] leading-snug text-white/30">
-            Otras cifras en el texto suelen ser informativas. Compra gestionada por MimiPlay.
-          </p>
+          <MimiButton to={ctaHref} variant="primary" className="w-full !rounded-mimi !py-2.5 !text-sm !font-extrabold">
+            {ctaLabel}
+          </MimiButton>
         </div>
       </article>
     );
@@ -619,37 +611,43 @@ function PlanOfferCardEvent({ plan: p, buildCtaTo, ctaLabel, catalogChrome }: Pr
             <fieldset className="rounded-mimi border border-orange-400/25 bg-mimi-black/40 p-3">
               <legend className="px-1 text-[10px] font-extrabold uppercase tracking-wide text-orange-100/80">Elige qué compras</legend>
               <div className="mt-2 space-y-4">
-                {p.purchaseTierCatalog.groups.map((g) => (
-                  <div key={g.id} className="space-y-2">
-                    {g.title.trim() ? (
-                      <p className="text-[10px] font-extrabold uppercase tracking-wide text-orange-100/75">
-                        {g.emoji ? <span className="mr-1 font-normal normal-case">{g.emoji}</span> : null}
-                        {g.title}
-                      </p>
-                    ) : null}
-                    {g.tiers.map((c) => (
-                      <label
-                        key={c.id}
-                        className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-white/10 px-2.5 py-2 hover:bg-white/5 has-[:checked]:border-orange-400/55 has-[:checked]:bg-orange-500/15"
-                      >
-                        <input
-                          type="radio"
-                          className="mt-1"
-                          name={`purchase-event-${p.planId}`}
-                          value={c.id}
-                          checked={selectedId === c.id}
-                          onChange={() => setSelectedId(c.id)}
-                        />
-                        <span className="min-w-0 text-sm leading-snug">
-                          <span className="font-bold text-white">{catalogTierRowCaption(c)}</span>
-                          <span className="mt-0.5 block text-xs text-white/65">
-                            {formatPlanPrice(c.pricePen)} · {c.durationDays} días
-                          </span>
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                ))}
+                {(() => {
+                  let idx = 0;
+                  return p.purchaseTierCatalog.groups.map((g) => (
+                    <div key={g.id} className="space-y-2">
+                      {g.title.trim() || g.emoji ? (
+                        <p className="text-[10px] font-extrabold uppercase tracking-wide text-orange-100/75">
+                          {g.emoji ? <span className="mr-1 font-normal normal-case">{g.emoji}</span> : null}
+                          {g.title.trim()}
+                        </p>
+                      ) : null}
+                      {g.tiers.map((c) => {
+                        const i = idx++;
+                        return (
+                          <label
+                            key={`${p.planId}-ev-${i}`}
+                            className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-white/10 px-2.5 py-2 hover:bg-white/5 has-[:checked]:border-orange-400/55 has-[:checked]:bg-orange-500/15"
+                          >
+                            <input
+                              type="radio"
+                              className="mt-1"
+                              name={`purchase-event-${p.planId}`}
+                              value={i}
+                              checked={selectedIndex === i}
+                              onChange={() => setSelectedIndex(i)}
+                            />
+                            <span className="min-w-0 text-sm leading-snug">
+                              <span className="font-bold text-white">{catalogTierRowCaption(c)}</span>
+                              <span className="mt-0.5 block text-xs text-white/65">
+                                {formatPlanPrice(c.pricePen)} · {c.durationDays} días
+                              </span>
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  ));
+                })()}
               </div>
             </fieldset>
           ) : null}

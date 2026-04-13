@@ -7,6 +7,7 @@ import { adminDataClient } from "@/lib/dataClient";
 import { formatPlanPrice } from "@/lib/formatPlanPrice";
 import { formatModelErrors } from "@/lib/modelErrors";
 import { planRowHasRichMarketing } from "@/lib/planMarketing";
+import { deriveServicePlanStorageName } from "@/lib/servicePlanName";
 import { CATEGORY_LABEL } from "@/lib/orderStatus";
 import {
   type AdminTierGroupDraft,
@@ -61,7 +62,6 @@ export function AdminCatalogPage() {
   const [pSort, setPSort] = useState("");
 
   const [selectedPlatformId, setSelectedPlatformId] = useState("");
-  const [plName, setPlName] = useState("");
   const [plVariant, setPlVariant] = useState("");
   const [plPromoUrl, setPlPromoUrl] = useState("");
   const [plCardTitle, setPlCardTitle] = useState("");
@@ -157,22 +157,24 @@ export function AdminCatalogPage() {
       showSnackbar("Selecciona una plataforma.", "warning");
       return;
     }
-    if (!plName.trim()) {
-      showSnackbar("El nombre interno del anuncio es obligatorio.", "warning");
-      return;
-    }
     const tierCatalog = purchaseTierCatalogFromAdminDrafts(tierGroupDrafts);
     const firstTier = tierCatalog ? firstTierInCatalog(tierCatalog) : null;
     if (!tierCatalog || !firstTier) {
-      showSnackbar("Define al menos un bloque de precios con una fila válida (etiqueta, días y PEN).", "warning");
+      showSnackbar("Define al menos un bloque de precios con una fila válida (etiqueta, días y monto en S/.).", "warning");
       return;
     }
+    const platformName = platforms.find((x) => x.id === selectedPlatformId)?.name ?? "";
+    const storageName = deriveServicePlanStorageName({
+      cardTitle: plCardTitle,
+      planVariantKey: plVariant,
+      platformName,
+    });
     try {
       await fetchAuthSession({ forceRefresh: true });
       const res = await adminDataClient.models.ServicePlan.create(
         {
           platformID: selectedPlatformId,
-          name: plName.trim(),
+          name: storageName,
           durationDays: firstTier.durationDays,
           pricePen: firstTier.pricePen,
           purchaseOptionsJson: stringifyPurchaseTierCatalog(tierCatalog),
@@ -201,7 +203,6 @@ export function AdminCatalogPage() {
       showSnackbar(err instanceof Error ? err.message : "Error de red o sesión al crear.", "error");
       return;
     }
-    setPlName("");
     setPlVariant("");
     setPlPromoUrl("");
     setPlCardTitle("");
@@ -241,6 +242,35 @@ export function AdminCatalogPage() {
     }
   }
 
+  async function deletePlan(pl: ServicePlan) {
+    const plat = platforms.find((x) => x.id === pl.platformID);
+    const label = `${plat?.name ?? "?"} — ${pl.name}`;
+    if (
+      !window.confirm(
+        `¿Eliminar el anuncio «${label}»?\n\nEsta acción no se puede deshacer. Si existen pedidos vinculados, el sistema puede rechazar el borrado.`,
+      )
+    ) {
+      return;
+    }
+    try {
+      await fetchAuthSession({ forceRefresh: true });
+      const res = await adminDataClient.models.ServicePlan.delete({ id: pl.id }, { authMode: "userPool" });
+      const errText = formatModelErrors(res.errors);
+      if (errText) {
+        showSnackbar(errText, snackbarVariantForMessage(errText));
+        return;
+      }
+      showSnackbar("Anuncio eliminado.", "success");
+      if (selectedPlanForEdit?.id === pl.id) {
+        setSelectedPlanForEdit(null);
+        setPlanWorkspace("create");
+      }
+      await load();
+    } catch (e) {
+      showSnackbar(e instanceof Error ? e.message : "No se pudo eliminar el anuncio.", "error");
+    }
+  }
+
   function openPlanEditor(pl: ServicePlan) {
     setSelectedPlanForEdit(pl);
     setPlanWorkspace("edit");
@@ -257,7 +287,7 @@ export function AdminCatalogPage() {
         <h1 className="text-2xl font-extrabold text-mimi-black">Catálogo</h1>
         <p className="mt-2 max-w-3xl text-sm leading-relaxed text-mimi-subtle">
           Gestiona <strong>plataformas</strong> y <strong>anuncios</strong>. Cada anuncio puede llevar una sola tarifa o varias <strong>opciones de compra</strong>{" "}
-          (perfil 30d, cuenta 90d…). La columna derecha es el área de trabajo para <strong>dar de alta</strong> o <strong>editar</strong> anuncios, sin ventanas emergentes.
+          (perfil 30d, cuenta 90d…).
         </p>
 
         <div className="mt-5 flex flex-wrap gap-2">
@@ -444,6 +474,13 @@ export function AdminCatalogPage() {
                         >
                           {pl.active === false ? "Activar" : "Desactivar"}
                         </button>
+                        <button
+                          type="button"
+                          className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-bold text-red-800 hover:border-red-300"
+                          onClick={() => void deletePlan(pl)}
+                        >
+                          Eliminar
+                        </button>
                       </div>
                     </div>
                   </li>
@@ -522,18 +559,12 @@ export function AdminCatalogPage() {
                       </option>
                     ))}
                   </select>
-                  <input
-                    className="w-full rounded-lg border border-mimi-black/12 px-3 py-2 text-sm sm:col-span-2"
-                    placeholder="Nombre interno del anuncio (listado admin)"
-                    value={plName}
-                    onChange={(e) => setPlName(e.target.value)}
-                  />
                   <div className="rounded-lg border border-dashed border-mimi-black/18 bg-mimi-black/[0.02] p-3 sm:col-span-2">
                     <p className="text-xs font-bold text-mimi-subtle">Catálogo de precios (obligatorio)</p>
                     <PurchaseTierGroupsEditor
                       value={tierGroupDrafts}
                       onChange={setTierGroupDrafts}
-                      hint="Cada bloque es un tipo de producto (ej. PERFIL vs CUENTA). Cada fila: etiqueta visible, días y precio PEN. Los ids internos se generan al guardar."
+                      hint="Cada bloque agrupa opciones de compra (título e icono opcionales). Cada fila: etiqueta visible, días y precio (S/.). Los ids internos se generan al guardar."
                     />
                   </div>
                   <input

@@ -1,5 +1,6 @@
 import { snackbarVariantForMessage, useAdminSnackbar } from "@/components/admin/AdminSnackbar";
 import { MimiLoadingState } from "@/components/ui/MimiLoadingState";
+import { PasswordRevealInput } from "@/components/ui/PasswordReveal";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { adminDataClient } from "@/lib/dataClient";
 import { accountStatusLabel } from "@/lib/orderStatus";
@@ -27,6 +28,8 @@ export function AdminInventoryPage() {
 
   const [listPlatformFilter, setListPlatformFilter] = useState<string>("");
   const [listStatusFilter, setListStatusFilter] = useState<string>("");
+
+  const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
 
   const [platformId, setPlatformId] = useState("");
   const [internalLabel, setInternalLabel] = useState("");
@@ -77,12 +80,63 @@ export function AdminInventoryPage() {
     return m;
   }, [accounts]);
 
-  async function createAccount(e: FormEvent) {
+  function resetAccountForm() {
+    setEditingAccountId(null);
+    setInternalLabel("");
+    setEmail("");
+    setPassword("");
+    setProfile("");
+    setPin("");
+    setVariant("");
+    setStatus("AVAILABLE");
+    setPlatformId(platforms[0]?.id ?? "");
+  }
+
+  function startEditAccount(a: Account) {
+    setEditingAccountId(a.id);
+    setPlatformId(a.platformID);
+    setInternalLabel(a.internalLabel ?? "");
+    setEmail(a.loginEmail);
+    setPassword(a.loginPassword);
+    setProfile(a.profileLabel ?? "");
+    setPin(a.pin ?? "");
+    setVariant(a.planVariantKey ?? "");
+    const st = a.status;
+    setStatus(
+      st && (STATUSES as readonly string[]).includes(st) ? (st as (typeof STATUSES)[number]) : "AVAILABLE",
+    );
+  }
+
+  async function submitAccount(e: FormEvent) {
     e.preventDefault();
     if (!platformId || !email.trim() || !password.trim()) {
       showSnackbar("Plataforma, correo y contraseña son obligatorios.", "warning");
       return;
     }
+
+    if (editingAccountId) {
+      const { errors } = await adminDataClient.models.PlatformAccount.update({
+        id: editingAccountId,
+        platformID: platformId,
+        internalLabel: internalLabel.trim() || undefined,
+        loginEmail: email.trim(),
+        loginPassword: password.trim(),
+        profileLabel: profile.trim() || undefined,
+        pin: pin.trim() || undefined,
+        planVariantKey: variant.trim() || undefined,
+        status,
+      });
+      if (errors?.length) {
+        const t = errors.map((x) => x.message).join("; ");
+        showSnackbar(t, snackbarVariantForMessage(t));
+        return;
+      }
+      resetAccountForm();
+      showSnackbar("Cuenta actualizada.", "success");
+      await load();
+      return;
+    }
+
     const { errors } = await adminDataClient.models.PlatformAccount.create({
       platformID: platformId,
       internalLabel: internalLabel.trim() || undefined,
@@ -98,13 +152,7 @@ export function AdminInventoryPage() {
       showSnackbar(t, snackbarVariantForMessage(t));
       return;
     }
-    setInternalLabel("");
-    setEmail("");
-    setPassword("");
-    setProfile("");
-    setPin("");
-    setVariant("");
-    setStatus("AVAILABLE");
+    resetAccountForm();
     showSnackbar("Cuenta creada.", "success");
     await load();
   }
@@ -134,9 +182,7 @@ export function AdminInventoryPage() {
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="shrink-0 border-b border-mimi-black/10 pb-5">
         <h1 className="text-2xl font-extrabold text-mimi-black">Inventario de cuentas</h1>
-        <p className="mt-2 max-w-3xl text-sm text-mimi-subtle">
-          Consulta y filtra el stock a la izquierda; registra nuevas credenciales en el panel fijo de la derecha (en pantallas grandes).
-        </p>
+        <p className="mt-2 max-w-3xl text-sm text-mimi-subtle">Consulta y filtra el stock de las cuentas.</p>
       </header>
 
       {loading && <MimiLoadingState tone="light" layout="inline" className="mt-6" />}
@@ -213,6 +259,13 @@ export function AdminInventoryPage() {
                           </td>
                           <td className="px-3 py-2.5 align-top">{accountStatusLabel(a.status)}</td>
                           <td className="px-3 py-2.5 text-right align-top">
+                            <button
+                              type="button"
+                              className="mr-2 text-xs font-bold text-mimi-black hover:underline"
+                              onClick={() => startEditAccount(a)}
+                            >
+                              Editar
+                            </button>
                             {a.status === "AVAILABLE" && (
                               <button
                                 type="button"
@@ -253,9 +306,11 @@ export function AdminInventoryPage() {
 
           <aside className="lg:sticky lg:top-4 lg:self-start">
             <section className="rounded-2xl border border-mimi-black/12 bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-extrabold text-mimi-black">Alta de cuenta</h2>
+              <h2 className="text-lg font-extrabold text-mimi-black">
+                {editingAccountId ? "Editar cuenta" : "Alta de cuenta"}
+              </h2>
               <p className="mt-1 text-xs text-mimi-muted">Los datos sensibles solo se usan en operación; confirma antes de guardar.</p>
-              <form className="mt-5 space-y-3" onSubmit={createAccount}>
+              <form className="mt-5 space-y-3" onSubmit={submitAccount}>
                 <div>
                   <label className="block text-xs font-bold text-mimi-subtle" htmlFor="inv-plat">
                     Plataforma
@@ -286,13 +341,11 @@ export function AdminInventoryPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
-                <input
-                  className="w-full rounded-lg border border-mimi-black/12 px-3 py-2 text-sm"
+                <PasswordRevealInput
                   placeholder="Contraseña"
-                  type="password"
-                  autoComplete="new-password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={setPassword}
+                  resetKey={editingAccountId ?? "create"}
                 />
                 <input
                   className="w-full rounded-lg border border-mimi-black/12 px-3 py-2 text-sm"
@@ -314,7 +367,7 @@ export function AdminInventoryPage() {
                 />
                 <div>
                   <label className="block text-xs font-bold text-mimi-subtle" htmlFor="inv-status">
-                    Estado inicial
+                    {editingAccountId ? "Estado" : "Estado inicial"}
                   </label>
                   <select
                     id="inv-status"
@@ -329,12 +382,23 @@ export function AdminInventoryPage() {
                     ))}
                   </select>
                 </div>
-                <button
-                  type="submit"
-                  className="w-full rounded-full bg-mimi-black py-2.5 text-sm font-bold text-white hover:bg-neutral-800"
-                >
-                  Guardar cuenta
-                </button>
+                <div className="flex flex-col gap-2">
+                  <button
+                    type="submit"
+                    className="w-full rounded-full bg-mimi-black py-2.5 text-sm font-bold text-white hover:bg-neutral-800"
+                  >
+                    {editingAccountId ? "Actualizar cuenta" : "Guardar cuenta"}
+                  </button>
+                  {editingAccountId ? (
+                    <button
+                      type="button"
+                      className="w-full rounded-full border border-mimi-black/20 py-2.5 text-sm font-bold text-mimi-black hover:bg-mimi-black/[0.04]"
+                      onClick={() => resetAccountForm()}
+                    >
+                      Cancelar edición
+                    </button>
+                  ) : null}
+                </div>
               </form>
             </section>
           </aside>

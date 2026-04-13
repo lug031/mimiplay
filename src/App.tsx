@@ -15,6 +15,7 @@ import { ClientAuthRegisterPage } from "@/pages/ClientAuthRegisterPage";
 import { ClientNewOrderPage } from "@/pages/ClientNewOrderPage";
 import { ClientOrderDetailPage } from "@/pages/ClientOrderDetailPage";
 import { ClientAccountPage } from "@/pages/ClientAccountPage";
+import { ClientNotificationsPage } from "@/pages/ClientNotificationsPage";
 import { ClientOrdersPage } from "@/pages/ClientOrdersPage";
 import { LandingPage } from "@/pages/LandingPage";
 
@@ -64,6 +65,7 @@ export default function App() {
               <Route path="pedido/nuevo" element={<ClientNewOrderPage />} />
               <Route path="pedidos" element={<ClientOrdersPage />} />
               <Route path="pedidos/:orderId" element={<ClientOrderDetailPage />} />
+              <Route path="notificaciones" element={<ClientNotificationsPage />} />
               <Route path="cuenta" element={<ClientAccountPage />} />
             </Route>
           </Route>
@@ -72,7 +74,7 @@ export default function App() {
             <Route index element={<AdminDashboard />} />
             <Route path="catalogo" element={<AdminCatalogPage />} />
             <Route path="pedidos" element={<AdminOrdersPage />} />
-            <Route path="cola" element={<AdminOrdersPage queueOnly />} />
+            <Route path="cola" element={<Navigate to="/admin/pedidos" replace />} />
             <Route path="inventario" element={<AdminInventoryPage />} />
           </Route>
 

@@ -1,4 +1,5 @@
 import { useClientAuth } from "@/auth/ClientAuthContext";
+import { ClientNotificationBell } from "@/components/shell/ClientNotificationBell";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 
@@ -109,8 +110,6 @@ export function NavbarAuthActionsDesktop() {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
 
-  const activityTo = isStaffAdmin ? "/admin/pedidos" : "/app/pedidos";
-
   useEffect(() => {
     setOpen(false);
   }, [location.pathname, location.search]);
@@ -133,14 +132,18 @@ export function NavbarAuthActionsDesktop() {
 
   return (
     <div className="flex items-center gap-2">
-      <Link
-        to={activityTo}
-        className={iconBtnClass()}
-        aria-label={isStaffAdmin ? "Pedidos y cola de staff" : "Pedidos y avisos"}
-        title={isStaffAdmin ? "Pedidos (staff)" : "Pedidos y avisos"}
-      >
-        <BellIcon />
-      </Link>
+      {isStaffAdmin ? (
+        <Link
+          to="/admin/pedidos"
+          className={iconBtnClass()}
+          aria-label="Pedidos (admin)"
+          title="Pedidos (staff)"
+        >
+          <BellIcon />
+        </Link>
+      ) : (
+        <ClientNotificationBell />
+      )}
 
       <div className="relative" ref={wrapRef}>
         <button
@@ -193,7 +196,8 @@ export function NavbarAuthActionsMobile() {
   }, [open]);
 
   return (
-    <>
+    <div className="flex items-center gap-1">
+      {!isStaffAdmin ? <ClientNotificationBell compact /> : null}
       <button
         type="button"
         className={iconBtnClass("!h-9 !w-9")}
@@ -231,6 +235,6 @@ export function NavbarAuthActionsMobile() {
           </nav>
         </>
       ) : null}
-    </>
+    </div>
   );
 }

@@ -16,7 +16,7 @@ export type AdminTierRowDraft = {
   price: string;
 };
 
-/** Un bloque / tipo en el editor admin. */
+/** Un bloque / tipo en el editor admin (título del bloque opcional; solo icono también es válido). */
 export type AdminTierGroupDraft = {
   id: string;
   title: string;

@@ -27,7 +27,9 @@ export {
   checkoutChoicesGrouped,
   checkoutTierChoices,
   findCheckoutTierChoice,
+  formatChosenTierDetailLine,
   formatChosenTierLabel,
+  orderChosenOptionSummaryLine,
   type CheckoutChoiceGroup,
 } from "./checkout";
 

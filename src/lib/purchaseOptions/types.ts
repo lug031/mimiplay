@@ -5,7 +5,7 @@
 
 export const PURCHASE_OPTIONS_SCHEMA_VERSION = 2 as const;
 
-/** Una línea elegible en checkout (vigencia + precio). Los `id` son únicos en todo el anuncio. */
+/** Una línea elegible en checkout (vigencia + precio). El `id` va en URL/pedido; la UI usa índice lineal si hubiera colisiones. */
 export type PurchaseTier = {
   id: string;
   label: string;
@@ -13,9 +13,13 @@ export type PurchaseTier = {
   pricePen: number;
 };
 
-/** Bloque de UI / negocio: ej. «PERFIL - 1 PANTALLA», «CUENTA COMPLETA». */
+/**
+ * Bloque de UI / negocio (ej. varias líneas de precio agrupadas).
+ * `title` y `emoji` son opcionales en tienda; si no hay título, solo se muestran las filas del bloque.
+ */
 export type PurchaseTierGroup = {
   id: string;
+  /** Vacío = bloque sin encabezado de grupo (solo emoji opcional + filas). */
   title: string;
   emoji?: string;
   tiers: PurchaseTier[];

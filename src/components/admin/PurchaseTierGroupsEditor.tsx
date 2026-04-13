@@ -10,7 +10,7 @@ type Props = {
 };
 
 /**
- * Editor de bloques de precio (grupo + filas de vigencia/PEN).
+ * Editor de bloques de precio (grupo + filas de vigencia / S/.).
  * Los ids de grupo y tier se generan al guardar (estables por posición y texto).
  */
 export function PurchaseTierGroupsEditor({ value, onChange, disabled, hint }: Props) {
@@ -57,7 +57,7 @@ export function PurchaseTierGroupsEditor({ value, onChange, disabled, hint }: Pr
       {hint ? <p className="text-[11px] leading-snug text-mimi-muted">{hint}</p> : null}
 
       {value.length === 0 ? (
-        <p className="text-xs text-mimi-subtle">No hay bloques de precio. Añade uno para definir vigencias y precios (PEN).</p>
+        <p className="text-xs text-mimi-subtle">No hay bloques de precio. Añade uno para definir vigencias y precios (S/.).</p>
       ) : null}
 
       {value.map((group, gi) => (
@@ -69,7 +69,7 @@ export function PurchaseTierGroupsEditor({ value, onChange, disabled, hint }: Pr
             <div className="flex min-w-0 flex-1 flex-wrap gap-2">
               <input
                 className="min-w-[10rem] flex-1 rounded border border-mimi-black/12 px-2 py-1.5 text-xs"
-                placeholder="Título del bloque (ej. PERFIL - 1 PANTALLA)"
+                placeholder="Título del bloque (opcional)"
                 disabled={inputDisabled}
                 value={group.title}
                 onChange={(e) => updateGroup(gi, { title: e.target.value })}
@@ -118,7 +118,7 @@ export function PurchaseTierGroupsEditor({ value, onChange, disabled, hint }: Pr
                   type="number"
                   step="0.01"
                   min={0}
-                  placeholder="PEN"
+                  placeholder="S/."
                   disabled={inputDisabled}
                   value={row.price}
                   onChange={(e) => updateRow(gi, ri, { price: e.target.value })}

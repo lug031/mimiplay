@@ -2,7 +2,7 @@ import { MimiLoadingState } from "@/components/ui/MimiLoadingState";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { dataClient } from "@/lib/dataClient";
-import { orderStatusLabel } from "@/lib/orderStatus";
+import { orderStatusBadgeTone, orderStatusLabel } from "@/lib/orderStatus";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 
 type OrderRow = {
@@ -11,22 +11,6 @@ type OrderRow = {
   createdAt?: string | null;
   planLabel: string;
 };
-
-function badgeTone(status: string | undefined | null) {
-  switch (status) {
-    case "FULFILLED":
-      return "success" as const;
-    case "CANCELLED":
-      return "danger" as const;
-    case "PAYMENT_SUBMITTED":
-      return "warning" as const;
-    case "PAYMENT_CONFIRMED":
-    case "AWAITING_ACCOUNT":
-      return "info" as const;
-    default:
-      return "neutral" as const;
-  }
-}
 
 export function ClientOrdersPage() {
   const [rows, setRows] = useState<OrderRow[]>([]);
@@ -114,7 +98,7 @@ export function ClientOrdersPage() {
                   {r.createdAt ? new Date(r.createdAt).toLocaleString() : "Pedido"}
                 </p>
               </div>
-              <StatusBadge tone={badgeTone(r.status)}>{orderStatusLabel(r.status)}</StatusBadge>
+              <StatusBadge tone={orderStatusBadgeTone(r.status)}>{orderStatusLabel(r.status)}</StatusBadge>
             </Link>
           </li>
         ))}

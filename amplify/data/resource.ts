@@ -24,7 +24,10 @@ const schema = a.schema({
       allow.groups(["admin"]).to(["create", "read", "update", "delete"]),
     ]),
 
-  /** Anuncio comercial en tienda (streaming, software, evento, etc.). Nombre interno: ServicePlan. */
+  /**
+   * Anuncio comercial en tienda (streaming, software, evento, etc.).
+   * `name` es referencia en listados/admin; en el alta se deriva (titular, variante o plataforma + id).
+   */
   ServicePlan: a
     .model({
       platformID: a.id().required(),
@@ -94,6 +97,12 @@ const schema = a.schema({
     .model({
       servicePlanID: a.id().required(),
       servicePlan: a.belongsTo("ServicePlan", "servicePlanID"),
+      /**
+       * Copia al crear el pedido (plataforma + variante del anuncio).
+       * Si el `ServicePlan` se elimina después, el admin sigue pudiendo enlazar inventario por estos valores.
+       */
+      orderedPlatformID: a.id(),
+      orderedPlanVariantKey: a.string(),
       status: a.enum([
         "DRAFT",
         "AWAITING_PAYMENT",
@@ -147,6 +156,27 @@ const schema = a.schema({
       confirmedAt: a.datetime(),
     })
     .authorization((allow) => [
+      allow.groups(["admin"]).to(["create", "read", "update", "delete"]),
+    ]),
+
+  /**
+   * Avisos in-app por usuario (Cognito `sub` en `recipientSub`).
+   * El cliente solo lee/actualiza sus filas; el staff crea registros dirigidos a un `recipientSub` concreto.
+   */
+  UserNotification: a
+    .model({
+      /** Debe coincidir con el claim `sub` del JWT del destinatario. */
+      recipientSub: a.string().required(),
+      kind: a.enum(["ORDER_CREDENTIALS_UPDATED"]),
+      title: a.string().required(),
+      body: a.string().required(),
+      readAt: a.datetime(),
+      /** JSON tipado en front (`NotificationActionPayload`); extensible por `kind`. */
+      actionPayloadJson: a.string(),
+    })
+    .secondaryIndexes((index) => [index("recipientSub").queryField("listNotificationByRecipientSub")])
+    .authorization((allow) => [
+      allow.ownerDefinedIn("recipientSub").identityClaim("sub").to(["read", "update"]),
       allow.groups(["admin"]).to(["create", "read", "update", "delete"]),
     ]),
 });

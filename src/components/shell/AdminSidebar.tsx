@@ -6,7 +6,6 @@ import { Link, NavLink } from "react-router-dom";
 const nav: { to: string; label: string; end?: boolean }[] = [
   { to: "/admin", label: "Resumen", end: true },
   { to: "/admin/catalogo", label: "Catálogo" },
-  { to: "/admin/cola", label: "Cola de pago" },
   { to: "/admin/pedidos", label: "Pedidos" },
   { to: "/admin/inventario", label: "Inventario" },
 ];

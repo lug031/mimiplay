@@ -6,7 +6,7 @@ import { parsePurchaseTierCatalog, type PurchaseTierCatalog } from "@/lib/purcha
 export type PlanRow = PlanMarketingFields & {
   /** ID del anuncio. */
   planId: string;
-  /** Nombre del anuncio (referencia interna / listado). */
+  /** Copia de `ServicePlan.name` (referencia en listados; en el alta admin se deriva si no hay titular). */
   planName: string;
   durationDays: number;
   pricePen: number;

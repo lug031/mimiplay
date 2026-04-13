@@ -17,6 +17,25 @@ export function orderStatusLabel(status: string | null | undefined): string {
   return ORDER_STATUS_LABEL[status] ?? status;
 }
 
+/** Tono de badge alineado con el significado del estado (lista pedidos, admin, etc.). */
+export function orderStatusBadgeTone(
+  status: string | null | undefined,
+): "neutral" | "info" | "success" | "warning" | "danger" {
+  switch (status) {
+    case "FULFILLED":
+      return "success";
+    case "CANCELLED":
+      return "danger";
+    case "PAYMENT_SUBMITTED":
+      return "warning";
+    case "PAYMENT_CONFIRMED":
+    case "AWAITING_ACCOUNT":
+      return "info";
+    default:
+      return "neutral";
+  }
+}
+
 export const ACCOUNT_STATUS_LABEL: Record<string, string> = {
   AVAILABLE: "Disponible",
   RESERVED: "Reservada",

@@ -11,16 +11,14 @@ type Props = {
   setPlatformKey: (k: string) => void;
   categoryKey: string;
   setCategoryKey: (k: string) => void;
+  catalogShowAnuncios: boolean;
+  setCatalogShowAnuncios: (v: boolean) => void;
+  catalogShowEventos: boolean;
+  setCatalogShowEventos: (v: boolean) => void;
   shortOnly: boolean;
   setShortOnly: (v: boolean) => void;
   budgetOnly: boolean;
   setBudgetOnly: (v: boolean) => void;
-  toggleImmediate: boolean;
-  setToggleImmediate: (v: boolean) => void;
-  toggleId: boolean;
-  setToggleId: (v: boolean) => void;
-  toggleInvoice: boolean;
-  setToggleInvoice: (v: boolean) => void;
   richFichaOnly: boolean;
   setRichFichaOnly: (v: boolean) => void;
   eventsOnly: boolean;
@@ -34,16 +32,14 @@ export function CatalogFiltersSidebar({
   setPlatformKey,
   categoryKey,
   setCategoryKey,
+  catalogShowAnuncios,
+  setCatalogShowAnuncios,
+  catalogShowEventos,
+  setCatalogShowEventos,
   shortOnly,
   setShortOnly,
   budgetOnly,
   setBudgetOnly,
-  toggleImmediate,
-  setToggleImmediate,
-  toggleId,
-  setToggleId,
-  toggleInvoice,
-  setToggleInvoice,
   richFichaOnly,
   setRichFichaOnly,
   eventsOnly,
@@ -60,40 +56,12 @@ export function CatalogFiltersSidebar({
 
       {catalogChrome ? (
         <MimiCard variant="dark">
-          <FilterSectionTitle>Confianza</FilterSectionTitle>
-          <ul className="mt-1 divide-y divide-white/10">
+          <ul className="divide-y divide-white/10">
             <li>
-              <FilterSwitchRow
-                icon="⚡"
-                label="Acceso inmediato"
-                checked={toggleImmediate}
-                onChange={setToggleImmediate}
-                variant="dark"
-              />
+              <FilterSwitchRow label="Anuncios" checked={catalogShowAnuncios} onChange={setCatalogShowAnuncios} variant="dark" />
             </li>
             <li>
-              <FilterSwitchRow icon="🪪" label="Identidad verificada" checked={toggleId} onChange={setToggleId} variant="dark" />
-            </li>
-            <li>
-              <FilterSwitchRow icon="📄" label="Factura verificada" checked={toggleInvoice} onChange={setToggleInvoice} variant="dark" />
-            </li>
-            <li>
-              <FilterSwitchRow
-                icon="🖼"
-                label="Solo con ficha (imagen o texto de presentación)"
-                checked={richFichaOnly}
-                onChange={setRichFichaOnly}
-                variant="dark"
-              />
-            </li>
-            <li>
-              <FilterSwitchRow
-                icon="🏟"
-                label="Solo promos de evento (UFC, partidos…)"
-                checked={eventsOnly}
-                onChange={setEventsOnly}
-                variant="dark"
-              />
+              <FilterSwitchRow label="Eventos" checked={catalogShowEventos} onChange={setCatalogShowEventos} variant="dark" />
             </li>
           </ul>
         </MimiCard>
@@ -128,7 +96,7 @@ export function CatalogFiltersSidebar({
             />
           </label>
           <label className="flex cursor-pointer items-center justify-between gap-3 py-2.5 text-sm font-semibold text-white/90">
-            <span className="text-white/70">Menos de 25 PEN</span>
+            <span className="text-white/70">Menos de S/. 25</span>
             <input
               type="checkbox"
               className="h-4 w-4 rounded border-white/30 bg-mimi-black text-white accent-white"

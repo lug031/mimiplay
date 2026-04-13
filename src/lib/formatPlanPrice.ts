@@ -1,4 +1,4 @@
-/** Precio de catálogo (campo `pricePen` en datos); se muestra con código ISO para uso neutro. */
+/** Precio de catálogo (campo `pricePen` en datos); se muestra en soles peruanos. */
 export function formatPlanPrice(amount: number): string {
-  return `${amount.toFixed(2)} PEN`;
+  return `${amount.toFixed(2)} S/.`;
 }

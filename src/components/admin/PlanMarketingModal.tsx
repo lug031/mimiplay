@@ -167,7 +167,7 @@ export function PlanMarketingPanel({ plan, onCancel, onSaved }: Props) {
             value={tierGroupDrafts}
             onChange={setTierGroupDrafts}
             disabled={pending}
-            hint="Bloques = tipos de producto; cada fila = etiqueta visible, días de vigencia y precio en PEN. Los identificadores internos se asignan al guardar."
+            hint="Cada bloque agrupa opciones (título e icono opcionales); cada fila = etiqueta visible, días de vigencia y precio (S/.). Los identificadores internos se asignan al guardar."
           />
         </div>
 
@@ -193,7 +193,9 @@ export function PlanMarketingPanel({ plan, onCancel, onSaved }: Props) {
             value={cardTitle}
             onChange={(e) => setCardTitle(e.target.value)}
           />
-          <p className="mt-1 text-[11px] text-mimi-muted">Si lo dejas vacío, en la tienda se usa el nombre interno del anuncio.</p>
+          <p className="mt-1 text-[11px] text-mimi-muted">
+            Opcional. Si lo dejas vacío, en la tienda se muestra la referencia guardada del anuncio (la misma que ves en el encabezado de este editor).
+          </p>
         </div>
 
         <div className="sm:col-span-2">
