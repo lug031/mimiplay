@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes, useSearchParams } from "react-router-dom";
 import { ClientAuthProvider } from "@/auth/ClientAuthContext";
+import { ClientNotificationsProvider } from "@/context/ClientNotificationsContext";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { ClientAuthLayout } from "@/components/auth/ClientAuthLayout";
 import { RequireClientAuth } from "@/components/auth/RequireClientAuth";
@@ -45,41 +46,43 @@ export default function App() {
     <BrowserRouter>
       <ScrollToTop />
       <ClientAuthProvider>
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
+        <ClientNotificationsProvider>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
 
-          <Route element={<ClientPortalLayout />}>
-            <Route path="catalogo" element={<CatalogPage />} />
-            <Route path="app/acceso" element={<ClientAuthLayout />}>
-              <Route index element={<ClientAuthIndexRedirect />} />
-              <Route path="login" element={<ClientAuthLoginPage />} />
-              <Route path="registro" element={<ClientAuthRegisterPage />} />
+            <Route element={<ClientPortalLayout />}>
+              <Route path="catalogo" element={<CatalogPage />} />
+              <Route path="app/acceso" element={<ClientAuthLayout />}>
+                <Route index element={<ClientAuthIndexRedirect />} />
+                <Route path="login" element={<ClientAuthLoginPage />} />
+                <Route path="registro" element={<ClientAuthRegisterPage />} />
+              </Route>
+              <Route path="app/login" element={<LegacyAuthRedirect segment="login" />} />
+              <Route path="app/registro" element={<LegacyAuthRedirect segment="registro" />} />
+              <Route path="app" element={<RequireClientAuth />}>
+                <Route index element={<Navigate to="/catalogo" replace />} />
+                <Route path="inicio" element={<Navigate to="/catalogo" replace />} />
+                <Route path="planes" element={<Navigate to="/catalogo" replace />} />
+                <Route path="anuncios" element={<Navigate to="/catalogo" replace />} />
+                <Route path="pedido/nuevo" element={<ClientNewOrderPage />} />
+                <Route path="pedidos" element={<ClientOrdersPage />} />
+                <Route path="pedidos/:orderId" element={<ClientOrderDetailPage />} />
+                <Route path="notificaciones" element={<ClientNotificationsPage />} />
+                <Route path="cuenta" element={<ClientAccountPage />} />
+              </Route>
             </Route>
-            <Route path="app/login" element={<LegacyAuthRedirect segment="login" />} />
-            <Route path="app/registro" element={<LegacyAuthRedirect segment="registro" />} />
-            <Route path="app" element={<RequireClientAuth />}>
-              <Route index element={<Navigate to="/catalogo" replace />} />
-              <Route path="inicio" element={<Navigate to="/catalogo" replace />} />
-              <Route path="planes" element={<Navigate to="/catalogo" replace />} />
-              <Route path="anuncios" element={<Navigate to="/catalogo" replace />} />
-              <Route path="pedido/nuevo" element={<ClientNewOrderPage />} />
-              <Route path="pedidos" element={<ClientOrdersPage />} />
-              <Route path="pedidos/:orderId" element={<ClientOrderDetailPage />} />
-              <Route path="notificaciones" element={<ClientNotificationsPage />} />
-              <Route path="cuenta" element={<ClientAccountPage />} />
+
+            <Route path="/admin" element={<AdminAuthLayout />}>
+              <Route index element={<AdminDashboard />} />
+              <Route path="catalogo" element={<AdminCatalogPage />} />
+              <Route path="pedidos" element={<AdminOrdersPage />} />
+              <Route path="cola" element={<Navigate to="/admin/pedidos" replace />} />
+              <Route path="inventario" element={<AdminInventoryPage />} />
             </Route>
-          </Route>
 
-          <Route path="/admin" element={<AdminAuthLayout />}>
-            <Route index element={<AdminDashboard />} />
-            <Route path="catalogo" element={<AdminCatalogPage />} />
-            <Route path="pedidos" element={<AdminOrdersPage />} />
-            <Route path="cola" element={<Navigate to="/admin/pedidos" replace />} />
-            <Route path="inventario" element={<AdminInventoryPage />} />
-          </Route>
-
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </ClientNotificationsProvider>
       </ClientAuthProvider>
     </BrowserRouter>
   );

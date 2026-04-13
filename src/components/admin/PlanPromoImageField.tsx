@@ -2,7 +2,16 @@ import { uploadCatalogPromoImage } from "@/lib/storageCatalogPromo";
 import { getUrl } from "aws-amplify/storage";
 import { type ChangeEvent, useCallback, useEffect, useRef, useState } from "react";
 
-function PromoImagePreview({ raw, frameClass }: { raw: string; frameClass: string }) {
+function PromoImagePreview({
+  raw,
+  frameClass,
+  inline,
+}: {
+  raw: string;
+  frameClass: string;
+  /** Junto a la zona de subida (misma fila). */
+  inline?: boolean;
+}) {
   const isHttp = /^https?:\/\//i.test(raw);
   const [src, setSrc] = useState<string | null>(() => (isHttp ? raw : null));
 
@@ -22,6 +31,15 @@ function PromoImagePreview({ raw, frameClass }: { raw: string; frameClass: strin
   }, [raw, isHttp]);
 
   if (!src) return null;
+  if (inline) {
+    return (
+      <div
+        className={`flex w-full max-w-[11.5rem] shrink-0 flex-col self-stretch overflow-hidden rounded-lg sm:max-w-[13.5rem] ${frameClass}`}
+      >
+        <img src={src} alt="" className="h-full min-h-[140px] w-full object-cover object-center" />
+      </div>
+    );
+  }
   return (
     <div className={`mt-3 overflow-hidden rounded-lg ${frameClass}`}>
       <img src={src} alt="" className="max-h-40 w-full object-contain object-center" />
@@ -134,68 +152,78 @@ export function PlanPromoImageField({
     [disabled, uploading, runUpload],
   );
 
+  const dropzone = (
+    <div
+      ref={zoneRef}
+      id={inputId}
+      role="button"
+      tabIndex={disabled || uploading ? -1 : 0}
+      aria-disabled={disabled || uploading}
+      aria-describedby={`${inputId}-hint`}
+      className={`${s.dropzone} ${trimmed ? "flex-1 sm:min-h-[140px]" : ""} ${dragOver ? s.dropzoneActive : s.dropzoneIdle}`}
+      onPaste={onPaste}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!disabled && !uploading) setDragOver(true);
+      }}
+      onDragLeave={(e) => {
+        e.preventDefault();
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOver(false);
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDragOver(false);
+        if (disabled || uploading) return;
+        const f = e.dataTransfer.files?.[0];
+        if (f) void runUpload(f);
+      }}
+      onClick={() => {
+        if (disabled || uploading) return;
+        document.getElementById(`${inputId}-file`)?.click();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          if (!disabled && !uploading) document.getElementById(`${inputId}-file`)?.click();
+        }
+      }}
+    >
+      <p className="text-sm font-bold text-current">
+        {uploading ? "Subiendo…" : "Suelta la imagen aquí o elige archivo"}
+      </p>
+      <p id={`${inputId}-hint`} className={`max-w-sm ${s.hint}`}>
+        Máx. 2 MB · JPG, PNG o WebP. Haz clic en esta zona y usa <span className={s.kbd}>Ctrl</span> +{" "}
+        <span className={s.kbd}>V</span> para pegar captura o imagen copiada.
+      </p>
+      <label className={s.button} onClick={(ev) => ev.stopPropagation()}>
+        <input
+          id={`${inputId}-file`}
+          type="file"
+          accept="image/*"
+          className="sr-only"
+          onChange={(ev) => void onPickFile(ev)}
+          disabled={disabled || uploading}
+        />
+        Elegir archivo…
+      </label>
+    </div>
+  );
+
   return (
     <div>
       <label className={s.label} htmlFor={`${inputId}-file`}>
         {label}
       </label>
-      <div
-        ref={zoneRef}
-        id={inputId}
-        role="button"
-        tabIndex={disabled || uploading ? -1 : 0}
-        aria-disabled={disabled || uploading}
-        aria-describedby={`${inputId}-hint`}
-        className={`${s.dropzone} ${dragOver ? s.dropzoneActive : s.dropzoneIdle}`}
-        onPaste={onPaste}
-        onDragOver={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          if (!disabled && !uploading) setDragOver(true);
-        }}
-        onDragLeave={(e) => {
-          e.preventDefault();
-          if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOver(false);
-        }}
-        onDrop={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setDragOver(false);
-          if (disabled || uploading) return;
-          const f = e.dataTransfer.files?.[0];
-          if (f) void runUpload(f);
-        }}
-        onClick={() => {
-          if (disabled || uploading) return;
-          document.getElementById(`${inputId}-file`)?.click();
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            if (!disabled && !uploading) document.getElementById(`${inputId}-file`)?.click();
-          }
-        }}
-      >
-        <p className="text-sm font-bold text-current">
-          {uploading ? "Subiendo…" : "Suelta la imagen aquí o elige archivo"}
-        </p>
-        <p id={`${inputId}-hint`} className={`max-w-sm ${s.hint}`}>
-          Máx. 2 MB · JPG, PNG o WebP. Haz clic en esta zona y usa <span className={s.kbd}>Ctrl</span> +{" "}
-          <span className={s.kbd}>V</span> para pegar captura o imagen copiada.
-        </p>
-        <label className={s.button} onClick={(ev) => ev.stopPropagation()}>
-          <input
-            id={`${inputId}-file`}
-            type="file"
-            accept="image/*"
-            className="sr-only"
-            onChange={(ev) => void onPickFile(ev)}
-            disabled={disabled || uploading}
-          />
-          Elegir archivo…
-        </label>
-      </div>
-      {trimmed ? <PromoImagePreview key={trimmed} raw={trimmed} frameClass={s.previewFrame} /> : null}
+      {trimmed ? (
+        <div className="mt-1 flex flex-row items-stretch gap-3 sm:gap-4">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col min-h-[140px]">{dropzone}</div>
+          <PromoImagePreview key={trimmed} raw={trimmed} frameClass={s.previewFrame} inline />
+        </div>
+      ) : (
+        dropzone
+      )}
     </div>
   );
 }

@@ -19,7 +19,7 @@ import {
   totalTierCount,
 } from "@/lib/purchaseOptions";
 import { fetchAuthSession } from "aws-amplify/auth";
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 type Platform = {
   id: string;
@@ -82,7 +82,7 @@ export function AdminCatalogPage() {
     });
   }, [plans, platforms, planListQuery]);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const [pr, sr] = await Promise.all([
@@ -103,11 +103,11 @@ export function AdminCatalogPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [showSnackbar]);
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [load]);
 
   async function createPlatform(e: FormEvent) {
     e.preventDefault();

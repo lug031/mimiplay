@@ -2,7 +2,7 @@ import { useClientAuth } from "@/auth/ClientAuthContext";
 import type { ClientAuthOutletContext } from "@/components/auth/clientAuthOutletContext";
 import { authFieldClass } from "@/components/auth/authFieldClass";
 import { MimiButton } from "@/components/ui/MimiButton";
-import { type FormEvent, useLayoutEffect, useState } from "react";
+import { type FormEvent, useEffect, useLayoutEffect, useState } from "react";
 import { useNavigate, useOutletContext, useSearchParams } from "react-router-dom";
 
 export function ClientAuthLoginPage() {
@@ -11,7 +11,7 @@ export function ClientAuthLoginPage() {
   const { setLoginHeadline } = useOutletContext<ClientAuthOutletContext>();
   const returnUrl = searchParams.get("returnUrl") || "/catalogo";
 
-  const { signInWithEmailPassword, completeNewPassword, loading: authLoading } = useClientAuth();
+  const { signInWithEmailPassword, completeNewPassword, loading: authLoading, user } = useClientAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -19,6 +19,11 @@ export function ClientAuthLoginPage() {
   const [phase, setPhase] = useState<"login" | "new_password">("login");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+
+  useEffect(() => {
+    if (authLoading || !user || phase !== "login") return;
+    navigate(returnUrl.startsWith("/") ? returnUrl : `/${returnUrl}`, { replace: true });
+  }, [authLoading, user, phase, returnUrl, navigate]);
 
   useLayoutEffect(() => {
     if (phase === "new_password") {

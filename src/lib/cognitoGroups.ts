@@ -8,6 +8,16 @@ export function readCognitoGroups(payload: Record<string, unknown> | undefined):
   return [];
 }
 
+/** Email en el ID token (claim `email`), útil si `fetchUserAttributes` falla tras recarga en frío. */
+export function emailFromIdToken(session: {
+  tokens?: {
+    idToken?: { payload?: Record<string, unknown> } | null;
+  } | null;
+}): string | undefined {
+  const raw = session.tokens?.idToken?.payload?.email;
+  return typeof raw === "string" ? raw : undefined;
+}
+
 /** Une grupos del id token y del access token (por si el IdP solo rellena uno de los dos). */
 export function sessionAdminGroups(session: {
   tokens?: {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { getUrl } from "aws-amplify/storage";
 import { snackbarVariantForMessage, useAdminSnackbar } from "@/components/admin/AdminSnackbar";
 import { MimiLoadingState } from "@/components/ui/MimiLoadingState";
@@ -325,7 +325,7 @@ export function AdminOrdersPage() {
     return rows.filter((r) => r.status === filter);
   }, [rows, filter]);
 
-  async function refresh() {
+  const refresh = useCallback(async () => {
     setLoading(true);
     try {
       const [or, pr, plr] = await Promise.all([
@@ -369,11 +369,11 @@ export function AdminOrdersPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [showSnackbar]);
 
   useEffect(() => {
     void refresh();
-  }, []);
+  }, [refresh]);
 
   async function hydrateAvailAccountsFromOrder(o: {
     servicePlanID: string;

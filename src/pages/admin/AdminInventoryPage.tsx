@@ -1,7 +1,7 @@
 import { snackbarVariantForMessage, useAdminSnackbar } from "@/components/admin/AdminSnackbar";
 import { MimiLoadingState } from "@/components/ui/MimiLoadingState";
 import { PasswordRevealInput } from "@/components/ui/PasswordReveal";
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { adminDataClient } from "@/lib/dataClient";
 import { accountStatusLabel } from "@/lib/orderStatus";
 
@@ -40,7 +40,7 @@ export function AdminInventoryPage() {
   const [variant, setVariant] = useState("");
   const [status, setStatus] = useState<(typeof STATUSES)[number]>("AVAILABLE");
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const [pr, ar] = await Promise.all([
@@ -56,11 +56,11 @@ export function AdminInventoryPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [showSnackbar]);
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [load]);
 
   const filteredAccounts = useMemo(() => {
     return accounts.filter((a) => {

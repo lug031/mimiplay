@@ -112,13 +112,7 @@ export function PlanMarketplace({
       </aside>
 
       <div className="min-w-0 flex-1">
-        <div
-          className={
-            catalogChrome
-              ? "mx-auto w-full max-w-md sm:max-w-xl md:max-w-2xl lg:max-w-3xl xl:max-w-4xl"
-              : "w-full"
-          }
-        >
+        <div className="w-full">
           <CatalogBanner title={bannerTitle} subtitle={bannerSubtitle} gridDecor={catalogChrome} />
 
           {loading && (
@@ -138,7 +132,7 @@ export function PlanMarketplace({
           <div
             className={
               catalogChrome
-                ? "mt-6 grid w-full justify-center gap-5 [grid-template-columns:repeat(auto-fill,minmax(min(100%,22.5rem),22.5rem))] sm:gap-6"
+                ? "mt-6 grid w-full grid-cols-1 gap-5 [grid-auto-rows:minmax(0,1fr)] min-[480px]:grid-cols-2 min-[480px]:gap-6 lg:grid-cols-3 [&>*]:min-h-0"
                 : "mt-6 flex flex-col gap-4"
             }
           >

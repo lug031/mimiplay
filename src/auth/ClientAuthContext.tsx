@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- proveedor + hook de auth */
 import {
   confirmSignIn,
   confirmSignUp,
@@ -9,7 +10,8 @@ import {
   signUp,
   type AuthUser,
 } from "aws-amplify/auth";
-import { sessionAdminGroups } from "@/lib/cognitoGroups";
+import { Hub } from "aws-amplify/utils";
+import { emailFromIdToken, sessionAdminGroups } from "@/lib/cognitoGroups";
 import {
   createContext,
   useCallback,
@@ -54,23 +56,58 @@ export function ClientAuthProvider({ children }: { children: ReactNode }) {
 
   const refreshUser = useCallback(async () => {
     try {
-      const u = await getCurrentUser();
-      const attrs = await fetchUserAttributes();
-      let session = await fetchAuthSession({ forceRefresh: false });
-      let groups = sessionAdminGroups(session);
-      if (groups.length === 0) {
-        session = await fetchAuthSession({ forceRefresh: true });
-        groups = sessionAdminGroups(session);
-      }
-      const staff = groups.includes(COGNITO_ADMIN_GROUP);
-      setUser(u);
-      setUserEmail(attrs.email);
-      setIsStaffAdmin(staff);
+      await fetchAuthSession({ forceRefresh: false });
+    } catch {
+      /* Hidratar credenciales desde almacenamiento antes de getCurrentUser (arranque en frío). */
+    }
+
+    let u: AuthUser;
+    try {
+      u = await getCurrentUser();
     } catch {
       setUser(null);
       setUserEmail(undefined);
       setIsStaffAdmin(false);
+      return;
     }
+
+    let session: Awaited<ReturnType<typeof fetchAuthSession>>;
+    try {
+      session = await fetchAuthSession({ forceRefresh: false });
+    } catch {
+      try {
+        session = await fetchAuthSession({ forceRefresh: true });
+      } catch {
+        setUser(u);
+        setUserEmail(undefined);
+        setIsStaffAdmin(false);
+        return;
+      }
+    }
+
+    let groups = sessionAdminGroups(session);
+    if (groups.length === 0) {
+      try {
+        const refreshed = await fetchAuthSession({ forceRefresh: true });
+        session = refreshed;
+        groups = sessionAdminGroups(refreshed);
+      } catch {
+        /* conservar grupos vacíos */
+      }
+    }
+    const staff = groups.includes(COGNITO_ADMIN_GROUP);
+
+    let email: string | undefined;
+    try {
+      const attrs = await fetchUserAttributes();
+      email = attrs.email;
+    } catch {
+      email = emailFromIdToken(session);
+    }
+
+    setUser(u);
+    setUserEmail(email);
+    setIsStaffAdmin(staff);
   }, []);
 
   useEffect(() => {
@@ -83,6 +120,15 @@ export function ClientAuthProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
+  }, [refreshUser]);
+
+  useEffect(() => {
+    const remove = Hub.listen("auth", ({ payload }) => {
+      if (payload.event === "signedIn" || payload.event === "signedOut") {
+        void refreshUser();
+      }
+    });
+    return remove;
   }, [refreshUser]);
 
   const clearError = useCallback(() => setError(null), []);

@@ -1,13 +1,19 @@
 import { useClientAuth } from "@/auth/ClientAuthContext";
 import { authFieldClass } from "@/components/auth/authFieldClass";
 import { MimiButton } from "@/components/ui/MimiButton";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 export function ClientAuthRegisterPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { signUpWithEmail, confirmRegistration } = useClientAuth();
+  const { signUpWithEmail, confirmRegistration, user, loading: authLoading } = useClientAuth();
+  const returnUrl = searchParams.get("returnUrl") || "/catalogo";
+
+  useEffect(() => {
+    if (authLoading || !user) return;
+    navigate(returnUrl.startsWith("/") ? returnUrl : `/${returnUrl}`, { replace: true });
+  }, [authLoading, user, returnUrl, navigate]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");

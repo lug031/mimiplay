@@ -21,7 +21,7 @@ const CATEGORY_CHIPS: { key: string; label: string; icon: string }[] = [
 const FAQ_ITEMS: { q: string; a: string }[] = [
   {
     q: "¿Cuánto cuesta el servicio?",
-    a: "Cada anuncio publica precio y vigencia en días. Pagas el monto del acceso contratado; no cobramos registro en la web.",
+    a: "Cada anuncio publica precio y vigencia en días. Pagas el monto del acceso contratado.",
   },
   {
     q: "¿Qué es MimiPlay?",
@@ -151,13 +151,14 @@ export function LandingPage() {
             </div>
           <div className="max-w-xl flex-1 text-center sm:text-left">
             <h2 className="text-2xl font-extrabold leading-tight sm:text-3xl md:text-4xl">
-              ¿Listo para <span className="text-white">comprar</span>? Abre tu cuenta comercial
+              Gestiona tus cuentas y recibe soporte desde{" "}
+              <span className="text-white">un solo lugar</span>
             </h2>
             <div className="mx-auto mt-2 h-0.5 w-48 rounded-full bg-white/40 sm:mx-0" aria-hidden />
           </div>
           <div className="max-w-xs text-center sm:text-left">
             <p className="text-sm text-white/70">
-              Registro sin costo: accede al catálogo de anuncios, genera pedidos con comprobante de pago y gestiona tus compras de accesos en un solo
+              Accede al catálogo, genera tu pedido, adjunta tu comprobante de pago y gestiona tus cuentas en un solo
               lugar.
             </p>
             <MimiButton to="/app/acceso/registro" variant="primary" className="mt-5 !inline-flex !gap-2 !px-6 !py-3 !text-sm">

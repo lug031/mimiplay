@@ -99,7 +99,7 @@ const catalogPromoShellOuter =
   "w-full shrink-0 border-b border-white/10 bg-gradient-to-b from-mimi-black via-mimi-black to-mimi-void";
 const catalogPromoShellPad = "flex w-full items-stretch justify-center p-0";
 const catalogPromoShellFrame =
-  "relative isolate flex aspect-[4/3] w-full max-h-[15rem] items-center justify-center overflow-hidden bg-mimi-black/45 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.07)] before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(ellipse_80%_65%_at_50%_40%,rgba(255,255,255,0.06),transparent_62%)] sm:max-h-[17.5rem]";
+  "relative isolate flex aspect-video w-full items-stretch justify-center overflow-hidden bg-mimi-black/45 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.07)] before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(ellipse_80%_65%_at_50%_40%,rgba(255,255,255,0.06),transparent_62%)]";
 
 function CatalogPromoImageShell({ children }: { children: ReactNode }) {
   return (
@@ -177,7 +177,7 @@ export function PlanCardPromoImage({
           <img
             src={resolvedSrc}
             alt={title}
-            className={`absolute inset-0 z-[1] m-auto max-h-full max-w-full object-contain object-center px-2 py-3 drop-shadow-[0_10px_28px_rgba(0,0,0,0.42)] transition-opacity duration-300 ${showPhoto ? "opacity-100" : "opacity-0"}`}
+            className={`absolute inset-0 z-[1] h-full w-full object-cover object-center transition-opacity duration-300 ${showPhoto ? "opacity-100" : "opacity-0"}`}
             onLoad={() => {
               setImgLoaded(true);
               setBroken(false);
@@ -242,19 +242,19 @@ function PlanOfferCardStandard({ plan: p, buildCtaTo, ctaLabel, catalogChrome }:
   if (adLike) {
     const priceSummary = catalogPriceSummary(choices);
     return (
-      <article className="flex h-full w-full flex-col overflow-hidden rounded-mimi border border-white/10 bg-mimi-elevated shadow-sm transition hover:border-white/15">
+      <article className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-mimi border border-white/10 bg-mimi-elevated shadow-sm transition hover:border-white/15">
         {rawImg ? (
           <PlanCardPromoImage key={rawImg} catalogChrome raw={rawImg} title={title} />
         ) : (
           <CatalogPromoImageShell>
-            <div className="relative z-[1] flex h-full min-h-[8rem] w-full items-center justify-center p-4" aria-hidden>
+            <div className="relative z-[1] flex h-full min-h-0 w-full items-center justify-center p-4" aria-hidden>
               <MimiPlayLogo variant="icon" to={false} heightClass="h-16 w-16 sm:h-20 sm:w-20" className="opacity-75" />
             </div>
           </CatalogPromoImageShell>
         )}
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2.5 p-4">
-          <div>
+          <div className="shrink-0">
             <h3 className="text-base font-extrabold leading-snug text-white">{title}</h3>
             <p className="mt-1 text-[11px] leading-snug text-mimi-muted">
               {p.platformName}
@@ -263,44 +263,35 @@ function PlanOfferCardStandard({ plan: p, buildCtaTo, ctaLabel, catalogChrome }:
             </p>
           </div>
 
-          {serviceDetails ? (
-            <div className="max-h-28 overflow-y-auto rounded-mimi border border-white/10 bg-mimi-black/40 px-3 py-2 text-xs leading-relaxed text-white/80 whitespace-pre-wrap [word-break:break-word] sm:max-h-32 sm:text-[13px]">
-              {serviceDetails}
-            </div>
-          ) : null}
-
-          {stock ? (
-            <p className="inline-flex w-fit rounded-mimi border border-white/12 bg-mimi-black/40 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white/75">
-              {stock}
-            </p>
-          ) : null}
-
-          {warn ? (
-            <aside className="rounded-mimi border border-white/10 bg-mimi-black/50 px-2.5 py-2 text-[11px] leading-relaxed text-white/85">
-              <span className="font-bold text-white">Aviso: </span>
-              {warn}
-            </aside>
-          ) : null}
-
-          {extra ? (
-            <div className="max-h-24 overflow-y-auto text-[11px] leading-relaxed text-white/75 whitespace-pre-wrap [word-break:break-word] sm:max-h-28 sm:text-xs">
-              {extra}
-            </div>
-          ) : null}
-
-          <div className="mt-auto border-t border-white/10 pt-3">
-            <p className="text-lg font-extrabold tabular-nums tracking-tight text-white">{priceSummary.priceLine}</p>
-            {priceSummary.caption ? (
-              <p className="mt-1 text-[10px] font-semibold uppercase leading-tight text-mimi-muted">{priceSummary.caption}</p>
+          <div className="h-[9.5rem] shrink-0 overflow-y-auto rounded-mimi border border-white/10 bg-mimi-black/40 px-3 py-2 text-xs leading-relaxed text-white/80 [word-break:break-word] sm:h-40 sm:text-[13px]">
+            {serviceDetails ? <div className="whitespace-pre-wrap">{serviceDetails}</div> : null}
+            {stock ? (
+              <p className="mt-2 inline-flex w-fit rounded-mimi border border-white/12 bg-mimi-black/40 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white/75">
+                {stock}
+              </p>
             ) : null}
-            <p className="mt-2 text-[10px] leading-snug text-mimi-subtle">
-              Precio y vigencia definitivos al formalizar el pedido.
-            </p>
+            {warn ? (
+              <aside className="mt-2 rounded-mimi border border-white/10 bg-mimi-black/50 px-2.5 py-2 text-[11px] leading-relaxed text-white/85">
+                <span className="font-bold text-white">Aviso: </span>
+                {warn}
+              </aside>
+            ) : null}
+            {extra ? (
+              <div className="mt-2 whitespace-pre-wrap text-[11px] leading-relaxed text-white/75 sm:text-xs">{extra}</div>
+            ) : null}
           </div>
 
-          <MimiButton to={ctaHref} variant="primary" className="w-full !rounded-mimi !py-2.5 !text-sm !font-extrabold">
-            {ctaLabel}
-          </MimiButton>
+          <div className="mt-auto flex shrink-0 flex-col gap-3 border-t border-white/10 pt-3">
+            <div>
+              <p className="text-lg font-extrabold tabular-nums tracking-tight text-white">{priceSummary.priceLine}</p>
+              {priceSummary.caption ? (
+                <p className="mt-1 text-[10px] font-semibold uppercase leading-tight text-mimi-muted">{priceSummary.caption}</p>
+              ) : null}
+            </div>
+            <MimiButton to={ctaHref} variant="primary" className="w-full !rounded-mimi !py-2.5 !text-sm !font-extrabold">
+              {ctaLabel}
+            </MimiButton>
+          </div>
         </div>
       </article>
     );
@@ -493,23 +484,22 @@ function PlanOfferCardEvent({ plan: p, buildCtaTo, ctaLabel, catalogChrome }: Pr
   if (adLike) {
     const priceSummary = catalogPriceSummary(choices);
     return (
-      <article className="flex h-full w-full flex-col overflow-hidden rounded-mimi border border-white/10 bg-mimi-elevated shadow-sm transition hover:border-white/15">
+      <article className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-mimi border border-white/10 bg-mimi-elevated shadow-sm transition hover:border-white/15">
         {rawImg ? (
           <PlanCardPromoImage key={rawImg} catalogChrome raw={rawImg} title={title} />
         ) : (
           <CatalogPromoImageShell>
-            <div className="relative z-[1] flex h-full min-h-[8rem] w-full items-center justify-center p-4" aria-hidden>
+            <div className="relative z-[1] flex h-full min-h-0 w-full items-center justify-center p-4" aria-hidden>
               <MimiPlayLogo variant="icon" to={false} heightClass="h-16 w-16 sm:h-20 sm:w-20" className="opacity-75" />
             </div>
           </CatalogPromoImageShell>
         )}
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2.5 p-4">
-          <span className="w-fit rounded-mimi border border-white/12 bg-mimi-black/40 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-mimi-muted">
-            Evento
-          </span>
-
-          <div>
+          <div className="shrink-0">
+            <span className="mb-2 inline-flex w-fit rounded-mimi border border-white/12 bg-mimi-black/40 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-mimi-muted">
+              Evento
+            </span>
             <h3 className="text-base font-extrabold leading-snug text-white">{title}</h3>
             <p className="mt-1 text-[11px] leading-snug text-mimi-muted">
               {p.platformName}
@@ -517,50 +507,46 @@ function PlanOfferCardEvent({ plan: p, buildCtaTo, ctaLabel, catalogChrome }: Pr
             </p>
           </div>
 
-          {warn ? (
-            <aside className="rounded-mimi border border-white/10 bg-mimi-black/50 px-2.5 py-2 text-[11px] leading-relaxed text-white/85 whitespace-pre-wrap">
-              {warn}
-            </aside>
-          ) : null}
-
-          {stock ? (
-            <p className="inline-flex w-fit rounded-mimi border border-white/12 bg-mimi-black/40 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white/75">
-              {stock}
-            </p>
-          ) : null}
-
-          {extra ? (
-            <div className="max-h-24 overflow-y-auto rounded-mimi border border-white/10 bg-mimi-black/35 px-3 py-2 text-[11px] leading-relaxed text-white/80 whitespace-pre-wrap [word-break:break-word] sm:max-h-28 sm:text-xs">
-              {extra}
-            </div>
-          ) : (
-            <p className="text-[11px] text-mimi-subtle">
-              Añade el cuerpo del evento en <strong className="text-white/70">Editar anuncio</strong> (admin).
-            </p>
-          )}
-
-          {serviceDetails ? (
-            <details className="rounded-mimi border border-white/10 bg-mimi-black/35 text-xs text-white/75">
-              <summary className="cursor-pointer px-2.5 py-2 font-bold text-white/80 hover:bg-white/[0.04]">Detalles del servicio</summary>
-              <div className="max-h-28 overflow-y-auto border-t border-white/10 px-2.5 py-2 whitespace-pre-wrap [word-break:break-word] text-white/80 sm:max-h-32">
-                {serviceDetails}
-              </div>
-            </details>
-          ) : null}
-
-          <div className="mt-auto border-t border-white/10 pt-3">
-            <p className="text-lg font-extrabold tabular-nums tracking-tight text-white">{priceSummary.priceLine}</p>
-            {priceSummary.caption ? (
-              <p className="mt-1 text-[10px] font-semibold uppercase leading-tight text-mimi-muted">{priceSummary.caption}</p>
+          <div className="h-[9.5rem] shrink-0 overflow-y-auto rounded-mimi border border-white/10 bg-mimi-black/40 px-3 py-2 text-xs leading-relaxed text-white/80 [word-break:break-word] sm:h-40 sm:text-[13px]">
+            {warn ? (
+              <aside className="rounded-mimi border border-white/10 bg-mimi-black/50 px-2 py-2 text-[11px] leading-relaxed text-white/85 whitespace-pre-wrap">
+                {warn}
+              </aside>
             ) : null}
-            <p className="mt-2 text-[10px] leading-snug text-mimi-subtle">
-              Texto informativo. Precio y vigencia al formalizar el pedido.
-            </p>
+            {stock ? (
+              <p className="mt-2 inline-flex w-fit rounded-mimi border border-white/12 bg-mimi-black/40 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white/75">
+                {stock}
+              </p>
+            ) : null}
+            {extra ? (
+              <div className="mt-2 whitespace-pre-wrap text-[11px] leading-relaxed text-white/80 sm:text-xs">{extra}</div>
+            ) : (
+              <p className="text-[11px] text-mimi-subtle">
+                Añade el cuerpo del evento en <strong className="text-white/70">Editar anuncio</strong> (admin).
+              </p>
+            )}
+            {serviceDetails ? (
+              <div className="mt-2 border-t border-white/10 pt-2">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-white/60">Detalles del servicio</p>
+                <div className="mt-1 whitespace-pre-wrap text-white/80">{serviceDetails}</div>
+              </div>
+            ) : null}
           </div>
 
-          <MimiButton to={ctaHref} variant="primary" className="w-full !rounded-mimi !py-2.5 !text-sm !font-extrabold">
-            {ctaLabel}
-          </MimiButton>
+          <div className="mt-auto flex shrink-0 flex-col gap-3 border-t border-white/10 pt-3">
+            <div>
+              <p className="text-lg font-extrabold tabular-nums tracking-tight text-white">{priceSummary.priceLine}</p>
+              {priceSummary.caption ? (
+                <p className="mt-1 text-[10px] font-semibold uppercase leading-tight text-mimi-muted">{priceSummary.caption}</p>
+              ) : null}
+              <p className="mt-2 text-[10px] leading-snug text-mimi-subtle">
+                Texto informativo. Precio y vigencia al formalizar el pedido.
+              </p>
+            </div>
+            <MimiButton to={ctaHref} variant="primary" className="w-full !rounded-mimi !py-2.5 !text-sm !font-extrabold">
+              {ctaLabel}
+            </MimiButton>
+          </div>
         </div>
       </article>
     );

@@ -10,8 +10,20 @@ type Props = {
   marketingExtras?: boolean;
 };
 
+function NavbarAuthSessionPlaceholder() {
+  return (
+    <div
+      className="flex items-center gap-2"
+      aria-busy="true"
+      aria-label="Comprobando sesión"
+    >
+      <div className="h-9 w-32 animate-pulse rounded-lg bg-white/10 sm:w-40" />
+    </div>
+  );
+}
+
 export function AppNavbar({ marketingExtras = false }: Props) {
-  const { user, isStaffAdmin } = useClientAuth();
+  const { user, isStaffAdmin, loading: authLoading } = useClientAuth();
   const location = useLocation();
   const onAuthRoute =
     location.pathname.startsWith("/app/acceso") ||
@@ -50,21 +62,9 @@ export function AppNavbar({ marketingExtras = false }: Props) {
             </a>
           ) : null}
 
-          {marketingExtras && !user ? (
-            <>
-              <Link
-                to={`/app/acceso/login?returnUrl=${returnUrl}`}
-                className="rounded-lg px-3 py-2 text-sm font-semibold text-white/90 hover:bg-white/10"
-              >
-                Ingresar
-              </Link>
-              <MimiButton to="/app/acceso/registro" variant="primary" className="!px-4 !py-2 !text-xs sm:!text-sm">
-                Crear cuenta
-              </MimiButton>
-            </>
-          ) : null}
-
-          {user ? (
+          {authLoading ? (
+            <NavbarAuthSessionPlaceholder />
+          ) : user ? (
             <>
               {isStaffAdmin ? (
                 <Link to="/admin" className={panelAdminNavClass}>
@@ -77,7 +77,19 @@ export function AppNavbar({ marketingExtras = false }: Props) {
               )}
               <NavbarAuthActionsDesktop />
             </>
-          ) : !marketingExtras && !onAuthRoute ? (
+          ) : marketingExtras ? (
+            <>
+              <Link
+                to={`/app/acceso/login?returnUrl=${returnUrl}`}
+                className="rounded-lg px-3 py-2 text-sm font-semibold text-white/90 hover:bg-white/10"
+              >
+                Ingresar
+              </Link>
+              <MimiButton to="/app/acceso/registro" variant="primary" className="!px-4 !py-2 !text-xs sm:!text-sm">
+                Crear cuenta
+              </MimiButton>
+            </>
+          ) : !onAuthRoute ? (
             <>
               <Link
                 to={`/app/acceso/login?returnUrl=${returnUrl}`}
@@ -96,7 +108,11 @@ export function AppNavbar({ marketingExtras = false }: Props) {
           <Link to="/catalogo" className="rounded-lg px-2 py-2 text-xs font-bold text-white/90 hover:bg-white/10">
             Catálogo
           </Link>
-          {marketingExtras && !user ? (
+          {authLoading ? (
+            <NavbarAuthSessionPlaceholder />
+          ) : user ? (
+            <NavbarAuthActionsMobile />
+          ) : marketingExtras ? (
             <>
               <Link
                 to={`/app/acceso/login?returnUrl=${returnUrl}`}
@@ -108,8 +124,6 @@ export function AppNavbar({ marketingExtras = false }: Props) {
                 Crear cuenta
               </MimiButton>
             </>
-          ) : user ? (
-            <NavbarAuthActionsMobile />
           ) : onAuthRoute ? null : (
             <>
               <Link

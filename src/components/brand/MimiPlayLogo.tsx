@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 
 const WORDMARK_SRC = "/mimiplay.png";
-const ICON_SRC = "/logo-icono.png";
+const ICON_SRC = "/mimiplay.png";
 
 type Props = {
   /** `wordmark`: logotipo completo. `icon`: marca compacta para barra superior. */
