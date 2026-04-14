@@ -58,6 +58,7 @@ function AccountMenuLinks({ onNavigate, isStaffAdmin, userEmail, signOutUser, in
           ) : (
             <Link
               to="/app/pedidos"
+              data-onboarding-target="pedidos"
               className="block rounded-lg px-3 py-2.5 text-sm font-semibold text-white/90 hover:bg-white/10"
               onClick={onNavigate}
             >
@@ -67,6 +68,7 @@ function AccountMenuLinks({ onNavigate, isStaffAdmin, userEmail, signOutUser, in
           {!isStaffAdmin ? (
             <Link
               to="/app/reclamos"
+              data-onboarding-target="reclamos"
               className="block rounded-lg px-3 py-2.5 text-sm font-semibold text-white/90 hover:bg-white/10"
               onClick={onNavigate}
             >
@@ -212,6 +214,7 @@ export function NavbarAuthActionsMobile() {
         className={iconBtnClass("!h-9 !w-9")}
         aria-expanded={open}
         aria-label={open ? "Cerrar menú de cuenta" : "Abrir menú de cuenta"}
+        data-onboarding-target={!isStaffAdmin ? "cuenta-movil" : undefined}
         onClick={() => setOpen((v) => !v)}
       >
         {open ? (

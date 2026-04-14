@@ -41,7 +41,11 @@ export function AppNavbar({ marketingExtras = false }: Props) {
         <MimiPlayLogo to={isStaffAdmin && user ? "/admin" : "/"} variant="icon" heightClass="h-9 w-9 sm:h-11 sm:w-11" />
 
         <nav className="hidden items-center gap-1 lg:flex">
-          <Link to="/catalogo" className="rounded-lg px-3 py-2 text-sm font-semibold text-white/90 hover:bg-white/10">
+          <Link
+            to="/catalogo"
+            data-onboarding-target="catalogo"
+            className="rounded-lg px-3 py-2 text-sm font-semibold text-white/90 hover:bg-white/10"
+          >
             Catálogo
           </Link>
 
@@ -72,10 +76,18 @@ export function AppNavbar({ marketingExtras = false }: Props) {
                 </Link>
               ) : (
                 <>
-                  <Link to="/app/pedidos" className="rounded-lg px-2 py-2 text-sm font-semibold text-white/90 hover:bg-white/10">
+                  <Link
+                    to="/app/pedidos"
+                    data-onboarding-target="pedidos"
+                    className="rounded-lg px-2 py-2 text-sm font-semibold text-white/90 hover:bg-white/10"
+                  >
                     Mis pedidos
                   </Link>
-                  <Link to="/app/reclamos" className="rounded-lg px-2 py-2 text-sm font-semibold text-white/90 hover:bg-white/10">
+                  <Link
+                    to="/app/reclamos"
+                    data-onboarding-target="reclamos"
+                    className="rounded-lg px-2 py-2 text-sm font-semibold text-white/90 hover:bg-white/10"
+                  >
                     Reclamos
                   </Link>
                 </>
@@ -110,7 +122,11 @@ export function AppNavbar({ marketingExtras = false }: Props) {
         </nav>
 
         <div className="flex items-center gap-2 lg:hidden">
-          <Link to="/catalogo" className="rounded-lg px-2 py-2 text-xs font-bold text-white/90 hover:bg-white/10">
+          <Link
+            to="/catalogo"
+            data-onboarding-target="catalogo"
+            className="rounded-lg px-2 py-2 text-xs font-bold text-white/90 hover:bg-white/10"
+          >
             Catálogo
           </Link>
           {authLoading ? (

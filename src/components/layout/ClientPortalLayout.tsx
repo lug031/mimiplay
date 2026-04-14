@@ -1,17 +1,11 @@
-import { useClientAuth } from "@/auth/ClientAuthContext";
-import { ClientOnboardingWizard } from "@/components/onboarding/ClientOnboardingWizard";
 import { AppNavbar } from "@/components/shell/AppNavbar";
 import { Outlet, useLocation } from "react-router-dom";
 
 /** Portal cliente: navbar; login/registro a pantalla completa sin barra superior. */
 export function ClientPortalLayout() {
   const { pathname } = useLocation();
-  const { user, loading, isStaffAdmin } = useClientAuth();
   const authFullBleed =
     pathname.startsWith("/app/acceso") || pathname === "/app/login" || pathname === "/app/registro";
-
-  const showOnboarding =
-    !authFullBleed && !loading && Boolean(user) && !isStaffAdmin;
 
   return (
     <div className="flex min-h-screen flex-col bg-mimi-black font-manrope text-white">
@@ -25,7 +19,6 @@ export function ClientPortalLayout() {
       >
         <Outlet />
       </main>
-      {showOnboarding ? <ClientOnboardingWizard /> : null}
     </div>
   );
 }

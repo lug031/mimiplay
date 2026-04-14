@@ -83,6 +83,48 @@ const STEPS: Step[] = [
   },
 ];
 
+/** Por paso: elemento con `data-onboarding-target` a resaltar, o null. */
+const STEP_HIGHLIGHT: (string | null)[] = [null, "catalogo", "catalogo", "pedidos", "pedidos", "reclamos", null];
+
+const SPOTLIGHT_CLASSES = [
+  "onboarding-spotlight",
+  "relative",
+  "z-[60]",
+  "rounded-lg",
+  "ring-2",
+  "ring-amber-400",
+  "ring-offset-2",
+  "ring-offset-mimi-black",
+] as const;
+
+function isElementVisible(el: Element): boolean {
+  const html = el as HTMLElement;
+  const r = html.getBoundingClientRect();
+  if (r.width < 1 || r.height < 1) return false;
+  const st = window.getComputedStyle(html);
+  if (st.visibility === "hidden" || st.display === "none") return false;
+  return true;
+}
+
+function firstVisibleTarget(target: string): HTMLElement | null {
+  const nodes = document.querySelectorAll(`[data-onboarding-target="${target}"]`);
+  for (const el of nodes) {
+    if (isElementVisible(el)) return el as HTMLElement;
+  }
+  return null;
+}
+
+/** En vista móvil, Mis pedidos / Reclamos están en el menú; se usa el botón ☰ como referencia. */
+function resolveHighlightElement(target: string | null): HTMLElement | null {
+  if (!target) return null;
+  let el = firstVisibleTarget(target);
+  if (el) return el;
+  if (target === "pedidos" || target === "reclamos") {
+    el = firstVisibleTarget("cuenta-movil");
+  }
+  return el;
+}
+
 export function ClientOnboardingWizard() {
   const { user, loading, isStaffAdmin } = useClientAuth();
   const { pathname } = useLocation();
@@ -112,37 +154,52 @@ export function ClientOnboardingWizard() {
     setStep((s) => Math.max(0, s - 1));
   }, []);
 
+  const onboardingActive =
+    !loading && !!user && !isStaffAdmin && !!sub && !done && !pathname.startsWith("/app/acceso") && pathname !== "/app/login" && pathname !== "/app/registro";
+
   useEffect(() => {
-    if (loading || !user || isStaffAdmin || done || !sub) return;
-    if (
-      pathname.startsWith("/app/acceso") ||
-      pathname === "/app/login" ||
-      pathname === "/app/registro"
-    ) {
-      return;
-    }
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    if (!onboardingActive) return;
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") skip();
     }
     window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onboardingActive, skip]);
+
+  useEffect(() => {
+    if (!onboardingActive) return;
+
+    function clearSpotlight() {
+      document.querySelectorAll(".onboarding-spotlight").forEach((node) => {
+        SPOTLIGHT_CLASSES.forEach((c) => node.classList.remove(c));
+      });
+    }
+
+    function applySpotlight(opts: { scrollIntoView: boolean }) {
+      clearSpotlight();
+      const target = STEP_HIGHLIGHT[step] ?? null;
+      const el = resolveHighlightElement(target);
+      if (el) {
+        SPOTLIGHT_CLASSES.forEach((c) => el.classList.add(c));
+        if (opts.scrollIntoView) {
+          el.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+        }
+      }
+    }
+
+    applySpotlight({ scrollIntoView: true });
+    function onResize() {
+      applySpotlight({ scrollIntoView: false });
+    }
+    window.addEventListener("resize", onResize);
+
     return () => {
-      document.body.style.overflow = prevOverflow;
-      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("resize", onResize);
+      clearSpotlight();
     };
-  }, [loading, user, isStaffAdmin, done, sub, pathname, skip]);
+  }, [onboardingActive, step]);
 
-  if (loading || !user || isStaffAdmin || done || !sub) {
-    return null;
-  }
-
-  /** No molestar en pantallas de solo auth. */
-  if (
-    pathname.startsWith("/app/acceso") ||
-    pathname === "/app/login" ||
-    pathname === "/app/registro"
-  ) {
+  if (!onboardingActive) {
     return null;
   }
 
@@ -151,13 +208,12 @@ export function ClientOnboardingWizard() {
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex items-end justify-center bg-mimi-black/80 p-4 backdrop-blur-sm sm:items-center"
-      role="dialog"
-      aria-modal="true"
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-[85] flex justify-center p-4 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:justify-end"
+      role="region"
       aria-labelledby="onboarding-title"
       aria-describedby="onboarding-desc"
     >
-      <div className="w-full max-w-lg rounded-2xl border border-white/15 bg-mimi-elevated p-5 shadow-2xl sm:p-7">
+      <div className="pointer-events-auto w-full max-w-sm rounded-2xl border border-white/15 bg-mimi-elevated/98 p-4 shadow-2xl backdrop-blur-sm sm:max-w-md sm:p-5">
         <div className="flex items-start justify-between gap-3">
           <p className="text-[11px] font-extrabold uppercase tracking-widest text-white/45">
             Paso {step + 1} de {STEPS.length}
@@ -173,38 +229,35 @@ export function ClientOnboardingWizard() {
 
         <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
           <div
-            className="h-full rounded-full bg-white transition-[width] duration-300 ease-out"
+            className="h-full rounded-full bg-amber-400/90 transition-[width] duration-300 ease-out"
             style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
           />
         </div>
 
-        <h2 id="onboarding-title" className="mt-5 text-xl font-extrabold leading-tight text-white sm:text-2xl">
+        <h2 id="onboarding-title" className="mt-4 text-lg font-extrabold leading-tight text-white sm:text-xl">
           {current.title}
         </h2>
-        <div id="onboarding-desc" className="mt-3 text-sm leading-relaxed text-white/75">
+        <div id="onboarding-desc" className="mt-2 max-h-[40vh] overflow-y-auto text-sm leading-relaxed text-white/75 sm:max-h-none">
           {current.body}
         </div>
 
         {current.action ? (
-          <div className="mt-5">
+          <div className="mt-4">
             <Link
               to={current.action.to}
               className="inline-flex rounded-full border border-white/25 bg-white/10 px-4 py-2 text-sm font-extrabold text-white transition hover:bg-white/15"
-              onClick={() => {
-                /* opcional: no cerrar el modal para que siga viendo los pasos */
-              }}
             >
               {current.action.label} →
             </Link>
           </div>
         ) : null}
 
-        <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-5">
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4">
           <button
             type="button"
             onClick={prev}
             disabled={step === 0}
-            className="rounded-full border border-white/20 px-5 py-2.5 text-sm font-bold text-white/90 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-35"
+            className="rounded-full border border-white/20 px-4 py-2 text-sm font-bold text-white/90 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-35"
           >
             Anterior
           </button>
@@ -213,7 +266,7 @@ export function ClientOnboardingWizard() {
               <button
                 type="button"
                 onClick={next}
-                className="rounded-full bg-white px-6 py-2.5 text-sm font-extrabold text-mimi-black shadow-sm transition hover:bg-neutral-200"
+                className="rounded-full bg-white px-5 py-2 text-sm font-extrabold text-mimi-black shadow-sm transition hover:bg-neutral-200"
               >
                 Siguiente
               </button>
@@ -221,7 +274,7 @@ export function ClientOnboardingWizard() {
               <button
                 type="button"
                 onClick={finish}
-                className="rounded-full bg-white px-6 py-2.5 text-sm font-extrabold text-mimi-black shadow-sm transition hover:bg-neutral-200"
+                className="rounded-full bg-white px-5 py-2 text-sm font-extrabold text-mimi-black shadow-sm transition hover:bg-neutral-200"
               >
                 Empezar a usar MimiPlay
               </button>

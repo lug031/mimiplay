@@ -25,6 +25,7 @@ import { ClientClaimsPage } from "@/pages/ClientClaimsPage";
 import { ClientNewClaimPage } from "@/pages/ClientNewClaimPage";
 import { ClientClaimDetailPage } from "@/pages/ClientClaimDetailPage";
 import { LandingPage } from "@/pages/LandingPage";
+import { ClientOnboardingWizard } from "@/components/onboarding/ClientOnboardingWizard";
 
 /** `/app/acceso` sin segmento: envía a login o registro según query heredada (`tipo=`) o por defecto login. */
 function ClientAuthIndexRedirect() {
@@ -95,6 +96,8 @@ export default function App() {
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          {/* Una sola instancia: landing `/` y rutas del portal (catálogo, /app/*) sin perder el paso al navegar. */}
+          <ClientOnboardingWizard />
         </ClientNotificationsProvider>
       </ClientAuthProvider>
     </BrowserRouter>
