@@ -65,12 +65,20 @@ export function ClientOrdersPage() {
             Historial de compras de accesos: estado de pago, asignación y entrega de credenciales por pedido.
           </p>
         </div>
-        <Link
-          to="/catalogo"
-          className="inline-flex justify-center rounded-full border border-white/20 bg-white px-5 py-2 text-sm font-extrabold text-mimi-black hover:bg-neutral-200"
-        >
-          Nuevo pedido
-        </Link>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <Link
+            to="/app/reclamos"
+            className="inline-flex justify-center rounded-full border border-white/25 px-5 py-2 text-sm font-extrabold text-white hover:bg-white/10"
+          >
+            Reclamos
+          </Link>
+          <Link
+            to="/catalogo"
+            className="inline-flex justify-center rounded-full border border-white/20 bg-white px-5 py-2 text-sm font-extrabold text-mimi-black hover:bg-neutral-200"
+          >
+            Nuevo pedido
+          </Link>
+        </div>
       </div>
 
       {loading && <MimiLoadingState tone="dark" layout="inline" className="mt-6" />}

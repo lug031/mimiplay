@@ -71,9 +71,14 @@ export function AppNavbar({ marketingExtras = false }: Props) {
                   Panel ADMIN
                 </Link>
               ) : (
-                <Link to="/app/pedidos" className="rounded-lg px-2 py-2 text-sm font-semibold text-white/90 hover:bg-white/10">
-                  Mis pedidos
-                </Link>
+                <>
+                  <Link to="/app/pedidos" className="rounded-lg px-2 py-2 text-sm font-semibold text-white/90 hover:bg-white/10">
+                    Mis pedidos
+                  </Link>
+                  <Link to="/app/reclamos" className="rounded-lg px-2 py-2 text-sm font-semibold text-white/90 hover:bg-white/10">
+                    Reclamos
+                  </Link>
+                </>
               )}
               <NavbarAuthActionsDesktop />
             </>

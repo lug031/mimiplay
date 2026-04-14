@@ -133,9 +133,32 @@ const schema = a.schema({
       credentialRenewsAt: a.datetime(),
       notes: a.string(),
       assignments: a.hasMany("AccountAssignment", "orderID"),
+      claims: a.hasMany("CustomerClaim", "orderID"),
     })
     .authorization((allow) => [
       allow.owner(),
+      allow.groups(["admin"]).to(["create", "read", "update", "delete"]),
+    ]),
+
+  /**
+   * Reclamo del cliente vinculado a un pedido suyo. El cliente crea y lee; el admin actualiza respuesta y estado.
+   */
+  CustomerClaim: a
+    .model({
+      orderID: a.id().required(),
+      order: a.belongsTo("CustomerOrder", "orderID"),
+      /** Detalle libre del reclamo. */
+      detail: a.string().required(),
+      /** Clave S3 opcional (imagen de respaldo). */
+      imageStorageKey: a.string(),
+      status: a.enum(["PENDING", "ATTENDED"]),
+      /** Respuesta visible para el cliente una vez atendido. */
+      adminResponse: a.string(),
+      attendedAt: a.datetime(),
+    })
+    .secondaryIndexes((index) => [index("status").queryField("listClaimByStatus")])
+    .authorization((allow) => [
+      allow.owner().to(["create", "read"]),
       allow.groups(["admin"]).to(["create", "read", "update", "delete"]),
     ]),
 

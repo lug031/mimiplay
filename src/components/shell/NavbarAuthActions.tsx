@@ -64,6 +64,15 @@ function AccountMenuLinks({ onNavigate, isStaffAdmin, userEmail, signOutUser, in
               Mis pedidos
             </Link>
           )}
+          {!isStaffAdmin ? (
+            <Link
+              to="/app/reclamos"
+              className="block rounded-lg px-3 py-2.5 text-sm font-semibold text-white/90 hover:bg-white/10"
+              onClick={onNavigate}
+            >
+              Reclamos
+            </Link>
+          ) : null}
           <div className="my-2 border-t border-white/10" />
         </>
       ) : null}

@@ -68,3 +68,26 @@ export function paymentMethodLabel(code: string | null | undefined): string {
   if (!code) return "";
   return PAYMENT_METHOD_LABEL[code] ?? code;
 }
+
+export const CLAIM_STATUS_LABEL: Record<string, string> = {
+  PENDING: "Pendiente de revisión",
+  ATTENDED: "Atendido",
+};
+
+export function claimStatusLabel(status: string | null | undefined): string {
+  if (!status) return "—";
+  return CLAIM_STATUS_LABEL[status] ?? status;
+}
+
+export function claimStatusBadgeTone(
+  status: string | null | undefined,
+): "neutral" | "info" | "success" | "warning" | "danger" {
+  switch (status) {
+    case "ATTENDED":
+      return "success";
+    case "PENDING":
+      return "warning";
+    default:
+      return "neutral";
+  }
+}

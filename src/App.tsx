@@ -12,6 +12,7 @@ import { AdminInventoryPage } from "@/pages/admin/AdminInventoryPage";
 import { AdminOrdersPage } from "@/pages/admin/AdminOrdersPage";
 import { AdminInformesPage } from "@/pages/admin/AdminInformesPage";
 import { AdminClientesPage } from "@/pages/admin/AdminClientesPage";
+import { AdminClaimsPage } from "@/pages/admin/AdminClaimsPage";
 import { CatalogPage } from "@/pages/CatalogPage";
 import { ClientAuthLoginPage } from "@/pages/ClientAuthLoginPage";
 import { ClientAuthRegisterPage } from "@/pages/ClientAuthRegisterPage";
@@ -20,6 +21,9 @@ import { ClientOrderDetailPage } from "@/pages/ClientOrderDetailPage";
 import { ClientAccountPage } from "@/pages/ClientAccountPage";
 import { ClientNotificationsPage } from "@/pages/ClientNotificationsPage";
 import { ClientOrdersPage } from "@/pages/ClientOrdersPage";
+import { ClientClaimsPage } from "@/pages/ClientClaimsPage";
+import { ClientNewClaimPage } from "@/pages/ClientNewClaimPage";
+import { ClientClaimDetailPage } from "@/pages/ClientClaimDetailPage";
 import { LandingPage } from "@/pages/LandingPage";
 
 /** `/app/acceso` sin segmento: envía a login o registro según query heredada (`tipo=`) o por defecto login. */
@@ -69,6 +73,9 @@ export default function App() {
                 <Route path="pedido/nuevo" element={<ClientNewOrderPage />} />
                 <Route path="pedidos" element={<ClientOrdersPage />} />
                 <Route path="pedidos/:orderId" element={<ClientOrderDetailPage />} />
+                <Route path="reclamos" element={<ClientClaimsPage />} />
+                <Route path="reclamos/nuevo" element={<ClientNewClaimPage />} />
+                <Route path="reclamos/:claimId" element={<ClientClaimDetailPage />} />
                 <Route path="notificaciones" element={<ClientNotificationsPage />} />
                 <Route path="cuenta" element={<ClientAccountPage />} />
               </Route>
@@ -81,6 +88,7 @@ export default function App() {
               <Route path="vigencia-pedidos" element={<Navigate to="/admin/pedidos?vista=vigencia" replace />} />
               <Route path="informes" element={<AdminInformesPage />} />
               <Route path="clientes" element={<AdminClientesPage />} />
+              <Route path="reclamos" element={<AdminClaimsPage />} />
               <Route path="cola" element={<Navigate to="/admin/pedidos" replace />} />
               <Route path="inventario" element={<AdminInventoryPage />} />
             </Route>

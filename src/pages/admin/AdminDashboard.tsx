@@ -12,6 +12,11 @@ const cards = [
     desc: "Cola de comprobantes, confirmación de pago y entrega. Incluye la pestaña Vigencia por pedido (fin del acceso contratado, no de la cuenta web).",
   },
   {
+    to: "/admin/reclamos",
+    title: "Reclamos",
+    desc: "Incidencias de clientes por pedido: revisar detalle, imagen opcional y responder; el cliente ve la respuesta en su cuenta.",
+  },
+  {
     to: "/admin/informes",
     title: "Informes",
     desc: "Dashboard con gráficos (barras, líneas, pastel) y todos los CSV de la aplicación (vigencia, clientes, etc.).",
