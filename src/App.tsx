@@ -10,6 +10,8 @@ import { AdminCatalogPage } from "@/pages/admin/AdminCatalogPage";
 import { AdminDashboard } from "@/pages/admin/AdminDashboard";
 import { AdminInventoryPage } from "@/pages/admin/AdminInventoryPage";
 import { AdminOrdersPage } from "@/pages/admin/AdminOrdersPage";
+import { AdminInformesPage } from "@/pages/admin/AdminInformesPage";
+import { AdminClientesPage } from "@/pages/admin/AdminClientesPage";
 import { CatalogPage } from "@/pages/CatalogPage";
 import { ClientAuthLoginPage } from "@/pages/ClientAuthLoginPage";
 import { ClientAuthRegisterPage } from "@/pages/ClientAuthRegisterPage";
@@ -76,6 +78,9 @@ export default function App() {
               <Route index element={<AdminDashboard />} />
               <Route path="catalogo" element={<AdminCatalogPage />} />
               <Route path="pedidos" element={<AdminOrdersPage />} />
+              <Route path="vigencia-pedidos" element={<Navigate to="/admin/pedidos?vista=vigencia" replace />} />
+              <Route path="informes" element={<AdminInformesPage />} />
+              <Route path="clientes" element={<AdminClientesPage />} />
               <Route path="cola" element={<Navigate to="/admin/pedidos" replace />} />
               <Route path="inventario" element={<AdminInventoryPage />} />
             </Route>

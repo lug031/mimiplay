@@ -7,6 +7,8 @@ const nav: { to: string; label: string; end?: boolean }[] = [
   { to: "/admin", label: "Resumen", end: true },
   { to: "/admin/catalogo", label: "Catálogo" },
   { to: "/admin/pedidos", label: "Pedidos" },
+  { to: "/admin/informes", label: "Informes" },
+  { to: "/admin/clientes", label: "Clientes" },
   { to: "/admin/inventario", label: "Inventario" },
 ];
 

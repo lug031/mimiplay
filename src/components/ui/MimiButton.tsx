@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { Link } from "react-router-dom";
 
-type Variant = "primary" | "secondary" | "ghost";
+type Variant = "primary" | "secondary" | "ghost" | "outline";
 
 const styles: Record<Variant, string> = {
   primary:
@@ -10,6 +10,9 @@ const styles: Record<Variant, string> = {
     "rounded-full border border-white/20 bg-transparent px-5 py-2.5 text-sm font-bold text-white transition hover:border-white/40 hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30",
   ghost:
     "rounded-lg px-3 py-2 text-sm font-semibold text-white/90 transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/25",
+  /** Fondo claro (contenido admin sobre blanco): texto oscuro. */
+  outline:
+    "rounded-full border border-mimi-black/15 bg-white px-5 py-2.5 text-sm font-bold text-mimi-black shadow-sm transition hover:border-mimi-black/28 hover:bg-mimi-black/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mimi-black/15",
 };
 
 type Props = {

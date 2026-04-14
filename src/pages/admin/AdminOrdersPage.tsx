@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useSearchParams } from "react-router-dom";
 import { getUrl } from "aws-amplify/storage";
 import { snackbarVariantForMessage, useAdminSnackbar } from "@/components/admin/AdminSnackbar";
 import { MimiLoadingState } from "@/components/ui/MimiLoadingState";
@@ -9,6 +10,7 @@ import { formatCredentialRenewalDisplay } from "@/lib/formatCredentialRenewal";
 import { notifyOrderCredentialsUpdated } from "@/lib/notifications";
 import { orderChosenOptionSummaryLine } from "@/lib/purchaseOptions";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { AdminOrderValidityPanel } from "@/pages/admin/AdminOrderValidityPanel";
 
 type OrderRow = {
   id: string;
@@ -246,11 +248,16 @@ function AdminPaymentProofPanel({
 
 export function AdminOrdersPage() {
   const { showSnackbar } = useAdminSnackbar();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const orderFromUrl = searchParams.get("order");
+  const vistaVigencia = searchParams.get("vista") === "vigencia";
   const [filter, setFilter] = useState<string>("ALL");
   const [rows, setRows] = useState<OrderRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [openId, setOpenId] = useState<string | null>(null);
+  /** Evita que el efecto de `?order=` vuelva a abrir el modal si la URL aún no se ha limpiado tras Cerrar. */
+  const suppressDeepLinkOpenRef = useRef(false);
   const [detail, setDetail] = useState<{
     order: OrderDetail | null | undefined;
     proofUrl: string | null;
@@ -452,6 +459,16 @@ export function AdminOrdersPage() {
   }
 
   async function openDetail(id: string) {
+    suppressDeepLinkOpenRef.current = false;
+    setSearchParams(
+      (prev) => {
+        if (prev.get("order") === id) return prev;
+        const n = new URLSearchParams(prev);
+        n.set("order", id);
+        return n;
+      },
+      { replace: true },
+    );
     setOpenId(id);
     setDetail(null);
     setDetailLoading(true);
@@ -472,9 +489,35 @@ export function AdminOrdersPage() {
   }
 
   function closeDetail() {
+    suppressDeepLinkOpenRef.current = true;
     setOpenId(null);
     setDetail(null);
+    setSearchParams(
+      (prev) => {
+        if (!prev.has("order")) return prev;
+        const next = new URLSearchParams(prev);
+        next.delete("order");
+        return next;
+      },
+      { replace: true },
+    );
   }
+
+  useEffect(() => {
+    if (!orderFromUrl) {
+      suppressDeepLinkOpenRef.current = false;
+      return;
+    }
+    if (suppressDeepLinkOpenRef.current) return;
+    if (openId === orderFromUrl) return;
+    setSearchParams((prev) => {
+      const n = new URLSearchParams(prev);
+      n.delete("vista");
+      return n;
+    }, { replace: true });
+    void openDetail(orderFromUrl);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deep link ?order=
+  }, [orderFromUrl, openId]);
 
   async function reloadOrderInModal() {
     if (!openId) return;
@@ -658,16 +701,72 @@ export function AdminOrdersPage() {
 
   const st = detail?.order?.status;
 
+  function setPedidosTab(next: "lista" | "vigencia") {
+    if (next === "vigencia") {
+      setOpenId(null);
+      setDetail(null);
+      setSearchParams(
+        (prev) => {
+          const n = new URLSearchParams(prev);
+          n.set("vista", "vigencia");
+          n.delete("order");
+          return n;
+        },
+        { replace: true },
+      );
+    } else {
+      setSearchParams(
+        (prev) => {
+          const n = new URLSearchParams(prev);
+          n.delete("vista");
+          return n;
+        },
+        { replace: true },
+      );
+    }
+  }
+
   return (
     <div>
       <h1 className="text-2xl font-extrabold text-mimi-black">Pedidos</h1>
-      <p className="mt-2 text-sm text-mimi-subtle">
-        Comprobantes, confirmación de pagos y cierre con entrega de credenciales. En pedidos ya entregados puedes{" "}
-        <strong className="font-bold text-mimi-black">reemplazar credenciales</strong> si la cuenta falla, sin cambiar la
-        fecha de fin de vigencia del plan contratado. Usa el filtro para ver solo los que tienen pago enviado u otro
-        estado.
+      <p className="mt-2 max-w-3xl text-sm text-mimi-subtle">
+        Cola operativa: comprobantes, confirmación de pago y entrega de credenciales. En la pestaña{" "}
+        <strong className="font-bold text-mimi-black">Vigencia por pedido</strong> controlas el fin del acceso
+        contratado en cada pedido; los CSV y gráficos están en{" "}
+        <strong className="font-bold text-mimi-black">Informes</strong>. En pedidos entregados puedes{" "}
+        <strong className="font-bold text-mimi-black">reemplazar credenciales</strong> sin cambiar la fecha de fin de
+        vigencia del plan.
       </p>
 
+      <div className="mt-5" role="tablist" aria-label="Secciones de pedidos">
+        <div className="inline-flex rounded-xl border border-mimi-black/12 bg-mimi-black/[0.04] p-1">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={!vistaVigencia}
+            className={`rounded-lg px-4 py-2 text-sm font-bold transition ${!vistaVigencia ? "bg-white text-mimi-black shadow-sm" : "text-mimi-muted hover:text-mimi-black"}`}
+            onClick={() => setPedidosTab("lista")}
+          >
+            Cola y comprobantes
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={vistaVigencia}
+            className={`rounded-lg px-4 py-2 text-sm font-bold transition ${vistaVigencia ? "bg-white text-mimi-black shadow-sm" : "text-mimi-muted hover:text-mimi-black"}`}
+            onClick={() => setPedidosTab("vigencia")}
+          >
+            Vigencia por pedido
+          </button>
+        </div>
+      </div>
+
+      {vistaVigencia ? (
+        <div className="mt-8">
+          <AdminOrderValidityPanel />
+        </div>
+      ) : (
+        <>
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <label className="text-sm font-bold text-mimi-black">Filtrar</label>
         <select
@@ -1005,6 +1104,8 @@ export function AdminOrdersPage() {
             )}
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );

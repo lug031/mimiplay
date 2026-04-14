@@ -9,7 +9,17 @@ const cards = [
   {
     to: "/admin/pedidos",
     title: "Pedidos",
-    desc: "Revisa comprobantes, confirma pagos y cierra entregas. Filtra por estado (p. ej. pago enviado) desde el listado.",
+    desc: "Cola de comprobantes, confirmación de pago y entrega. Incluye la pestaña Vigencia por pedido (fin del acceso contratado, no de la cuenta web).",
+  },
+  {
+    to: "/admin/informes",
+    title: "Informes",
+    desc: "Dashboard con gráficos (barras, líneas, pastel) y todos los CSV de la aplicación (vigencia, clientes, etc.).",
+  },
+  {
+    to: "/admin/clientes",
+    title: "Clientes",
+    desc: "CRM-lite: ranking por titular, ticket medio y enlaces a pedidos. Las exportaciones van desde Informes.",
   },
   {
     to: "/admin/inventario",
